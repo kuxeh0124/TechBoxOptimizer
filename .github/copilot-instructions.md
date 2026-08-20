@@ -1,4 +1,4 @@
-# Survivor.io Tech Resonance Optimizer — Copilot Instructions
+# Tech Part Choice Chest Allocation Optimzer — Copilot Instructions
 
 You are working on a browser-based Survivor.io Tech Part optimizer. Treat the rules below as the source of truth unless the user explicitly changes them. Do not silently reinterpret merge rules, resonance values, Twinborn pairings, or optimization priorities.
 

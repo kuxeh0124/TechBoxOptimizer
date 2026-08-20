@@ -1,0 +1,41 @@
+<!doctype html><meta charset="utf-8"><pre id="out">starting</pre>
+<script type="module">
+import { parseScreenshotFile } from '../src/vision.js';
+const expected={
+  'inventory_legend.png': [
+    ['TB','Rocket|Drill','Legend',0],['TB','Soccer|Durian','Legend',0],['TB','Lightning|Boomerang','Legend',0],['TB','Drone|Forcefield','Legend',0],['TB','Laser|Shield','Legend',0],
+    ['TB','Molotov|Brick','Legend',0],['PART','Rocket','Legend',4],['PART','Forcefield','Legend',4],['PART','Drill','Legend',4],['PART','Lightning','Legend',4],
+    ['PART','Drone','Legend',4],['PART','Laser','Legend',4],['PART','Shield','Legend',3],['PART','Brick','Legend',3],['PART','Boomerang','Legend',3],
+    ['PART','Durian','Legend',3],['PART','Soccer','Legend',3],['PART','Molotov','Legend',3],['PART','Drone','Legend',0],['PART','Shield','Epic',3]
+  ],
+  'inventory_epic.png': [
+    ['PART','Drill','Epic',3],['PART','Drone','Epic',3],['PART','Forcefield','Epic',2],['PART','Shield','Epic',2],['PART','Durian','Epic',2],
+    ['PART','Soccer','Epic',2],['PART','Drone','Epic',2],['PART','Molotov','Epic',2],['PART','Rocket','Epic',1],['PART','Brick','Epic',1],
+    ['PART','Boomerang','Epic',1],['PART','Durian','Epic',1],['PART','Lightning','Epic',1],['PART','Soccer','Epic',1],['PART','Forcefield','Epic',1],
+    ['PART','Drill','Epic',0],['PART','Lightning','Epic',0],['PART','Drone','Epic',0],['PART','Laser','Epic',0],['PART','Rocket','Purple',2]
+  ],
+  'inventory_purple.png': [
+    ['PART','Forcefield','Purple',2],['PART','Drill','Purple',2],['PART','Drone','Purple',2],['PART','Laser','Purple',2],['PART','Rocket','Purple',1],
+    ['PART','Forcefield','Purple',1],['PART','Shield','Purple',1],['PART','Boomerang','Purple',1],['PART','Durian','Purple',1],['PART','Drill','Purple',1],
+    ['PART','Lightning','Purple',1],['PART','Soccer','Purple',1],['PART','Drone','Purple',1],['PART','Laser','Purple',1],['PART','Molotov','Purple',1],
+    ['PART','Forcefield','Purple',0],['PART','Drill','Purple',0],['PART','Soccer','Purple',0],['PART','Drone','Purple',0],['PART','Laser','Purple',0]
+  ]
+};
+function core(c){return c.kind==='twinborn'?['TB',c.pairKey,c.rarity,c.level]:['PART',c.tech,c.rarity,c.level]}
+try{
+  const report=[];
+  for(const [name,exp] of Object.entries(expected)){
+    const blob=await fetch('./fixtures/'+name).then(r=>r.blob());
+    const file=new File([blob],name,{type:'image/png'});
+    const parsed=await parseScreenshotFile(file);
+    const got=parsed.cards.map(core);
+    const errors=[];
+    const n=Math.max(got.length,exp.length);
+    for(let i=0;i<n;i++) if(JSON.stringify(got[i])!==JSON.stringify(exp[i])) errors.push({i,expected:exp[i],got:got[i]});
+    report.push({name,grid:parsed.grid.source,cards:got.length,errors});
+  }
+  const ok=report.every(r=>r.errors.length===0);
+  document.querySelector('#out').textContent=(ok?'PASS':'FAIL')+'\n'+JSON.stringify(report,null,2);
+  document.body.dataset.status=ok?'pass':'fail';
+}catch(e){document.querySelector('#out').textContent='ERROR\n'+e.stack;document.body.dataset.status='error';}
+</script>

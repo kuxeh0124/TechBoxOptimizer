@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Survivor.io Tech Resonance Optimizer</title>
+  <link rel="stylesheet" href="./src/styles.css" />
+</head>
+<body>
+  <main class="wrap">
+    <header class="hero">
+      <div>
+        <h1>Survivor.io Tech Resonance Optimizer</h1>
+        <p>Resonance-first Epic chest allocation, Legend/Eternal merge planning, Twinborn progression, and multi-screenshot inventory import.</p>
+      </div>
+      <div class="badge">GitHub-ready project</div>
+    </header>
+
+    <section class="layout">
+      <div class="stack">
+        <section class="card">
+          <h2>Optimizer</h2>
+          <div class="controls">
+            <label>Epic Lv0 choice chests<input id="chestCount" type="number" min="0" max="500" value="0"></label>
+            <label>Resonance slots<input id="slotCount" type="number" min="1" max="36" value="18"></label>
+            <label>Mode<select id="planMode"><option value="BAL">Balanced</option><option value="RES">Pure resonance</option><option value="TB">Twinborn rush</option></select></label>
+            <label>Twinborn target<select id="tbTarget"></select></label>
+            <label>Allowed resonance loss<input id="maxLoss" type="number" min="0" max="99999" value="0"></label>
+          </div>
+          <div class="button-row">
+            <button class="primary" id="optimizeBtn">Optimize all chests</button>
+            <button id="presetBtn">Load original screenshot preset</button>
+            <button class="danger" id="clearBtn">Clear normal inventory</button>
+          </div>
+          <p class="hint">Primary objective is maximum resonance. Balanced mode then spends only the allowed resonance-loss budget to improve the selected/nearest Twinborn path. Every Epic chest is allocated somewhere, including future banking when it does not improve resonance immediately.</p>
+          <div id="summaryStats" class="stats"></div>
+          <div id="optimizerResult" class="empty">Run the optimizer after loading or editing your inventory.</div>
+        </section>
+
+        <section class="card">
+          <div class="section-title">
+            <div><h2>Screenshot inventory import</h2><p>Upload several inventory screenshots from the same inventory screen. The parser adds all detected cards together, detects owned Legend Twinborns, replaces the normal inventory, and recalculates.</p></div>
+          </div>
+          <div class="upload-zone" id="dropZone">
+            <input id="screenshotInput" type="file" accept="image/*" multiple hidden>
+            <button id="chooseScreensBtn">Choose screenshots</button>
+            <span id="fileCount">No screenshots selected</span>
+          </div>
+          <div class="button-row">
+            <button class="primary" id="analyzeBtn">Analyze & apply screenshots</button>
+            <label class="inline-check"><input id="replaceOnImport" type="checkbox" checked> Replace normal inventory on import</label>
+            <label class="inline-check"><input id="syncTwinbornsOnImport" type="checkbox" checked> Mark detected Twinborns as owned</label>
+          </div>
+          <div id="visionStatus" class="status-line"></div>
+          <div id="screenshotPreview" class="preview-grid"></div>
+          <div id="reviewPanel"></div>
+          <p class="hint">The recognizer is calibrated from your three supplied screenshots. Purple, Epic, Legend, all 12 tech types, and the six current Legend Twinborns are supported. New UI themes, unusual crops, and future Eternal card artwork should be reviewed manually until more calibration examples are added.</p>
+        </section>
+      </div>
+
+      <aside class="stack">
+        <section class="card">
+          <h2>Twinborn ownership</h2>
+          <div id="twinbornOwnership" class="tb-grid"></div>
+          <p class="hint">This is deliberately separate from normal tech inventory. Clearing normal inventory does not clear your Twinborns. Missing Twinborns become first-class progression targets.</p>
+        </section>
+
+        <section class="card">
+          <h2>Resonance energy</h2>
+          <div id="energyList" class="energy-list"></div>
+        </section>
+
+        <section class="card">
+          <h2>Twinborn roadmap</h2>
+          <div id="roadmap" class="tb-grid"></div>
+        </section>
+      </aside>
+    </section>
+
+    <section class="card inventory-card">
+      <div class="section-title">
+        <div><h2>Inventory</h2><p>Use +/− for quick corrections after screenshot import. “Use chests?” controls whether the optimizer is allowed to assign Epic choice chests to that tech.</p></div>
+      </div>
+      <div class="table-wrap"><table id="inventoryTable"></table></div>
+    </section>
+  </main>
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>

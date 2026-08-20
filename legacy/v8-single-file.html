@@ -1,0 +1,905 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Survivor.io Resonance + Twinborn Optimizer V8</title>
+<style>
+  :root {
+    --bg:#111821; --panel:#182330; --panel2:#202d3c; --line:#33455a;
+    --text:#eef4fb; --muted:#9fb0c3; --accent:#ffd43b; --purple:#bd62ff;
+    --yellow:#ffc928; --red:#ff4b62; --rainbow:#61e7ff; --green:#68e39b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0d131b,#131d28 38%,#0e151e);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  .wrap{max-width:1500px;margin:auto;padding:24px}
+  h1{margin:0 0 6px;font-size:clamp(25px,3vw,38px)}
+  h2{font-size:19px;margin:0 0 14px}
+  .sub{color:var(--muted);margin-bottom:20px;line-height:1.5}
+  .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}
+  .card{background:rgba(24,35,48,.96);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 12px 35px rgba(0,0,0,.18)}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
+  label{font-size:12px;color:var(--muted);font-weight:700;display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+  input[type=number],select{background:#0f1720;border:1px solid #3a4d63;color:var(--text);border-radius:9px;padding:9px 10px;font-weight:700}
+  input[type=number]{width:105px}
+  select{min-width:210px}
+  button{border:1px solid #425871;background:#26364a;color:var(--text);border-radius:10px;padding:9px 12px;font-weight:800;cursor:pointer}
+  button:hover{filter:brightness(1.1)}
+  .primary{background:#f5c72f;color:#161616;border-color:#f5c72f}
+  .danger{background:#3b2228;border-color:#6a323d}
+  .note{font-size:12px;color:var(--muted);line-height:1.55;margin-top:10px}
+  .priority{background:#101923;border:1px solid #2c3d50;border-radius:12px;padding:11px 12px;margin-top:12px;font-size:13px;line-height:1.5}
+  .priority b{color:var(--yellow)}
+  .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px;margin-top:14px}
+  table{border-collapse:collapse;width:100%;min-width:1230px;background:#121b25}
+  th,td{border-bottom:1px solid #28394c;border-right:1px solid #233244;padding:7px;text-align:center}
+  th{position:sticky;top:0;background:#202d3c;z-index:1;font-size:11px;color:#b8c6d5}
+  td:first-child,th:first-child{position:sticky;left:0;z-index:2;text-align:left;background:#1a2634;min-width:120px;font-weight:800}
+  th:first-child{z-index:3}
+  .purple{color:var(--purple)} .yellow{color:var(--yellow)} .red{color:var(--red)} .rainbow{color:var(--rainbow)}
+  .inv-stepper{display:grid;grid-template-columns:24px 44px 24px;gap:3px;align-items:center;justify-content:center;min-width:98px}
+  .inv-input{width:44px!important;padding:6px 3px!important;text-align:center;border-radius:7px!important;appearance:textfield;-moz-appearance:textfield}
+  .inv-input::-webkit-outer-spin-button,.inv-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .step-btn{width:24px;height:29px;padding:0;border-radius:7px;background:#26364a;border:1px solid #425871;color:var(--text);font-size:17px;line-height:1;font-weight:900;display:flex;align-items:center;justify-content:center}
+  .step-btn:hover{background:#334862}
+  .step-btn:active{transform:translateY(1px)}
+  .target-col{min-width:74px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:14px}
+  .stat{background:#121c26;border:1px solid #2c3d50;border-radius:12px;padding:12px}
+  .stat b{display:block;font-size:22px;margin-top:3px}
+  .stat span{color:var(--muted);font-size:11px;text-transform:uppercase;font-weight:800;letter-spacing:.04em}
+  .result-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+  .result{display:grid;grid-template-columns:115px 90px 1.15fr 1fr;gap:10px;align-items:center;background:#121c26;border:1px solid #2c3d50;border-radius:12px;padding:10px}
+  .result strong{font-size:14px}.chests{font-size:20px;color:var(--yellow);font-weight:900}
+  .state{font-size:12px;color:#c9d6e2;line-height:1.5}
+  .delta{color:var(--green);font-weight:800}
+  .empty{color:var(--muted);padding:20px;text-align:center;border:1px dashed #40546b;border-radius:12px;margin-top:12px}
+  .next-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .next{background:#121c26;border:1px solid #2c3d50;border-radius:10px;padding:10px}
+  .next .n{color:var(--yellow);font-size:21px;font-weight:900}
+  .next small{color:var(--muted)}
+  .pairs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .pair{background:#121c26;border:1px solid #2c3d50;border-radius:10px;padding:10px;font-size:12px}
+  .pair b{display:block;margin-bottom:4px}
+  .owned{color:var(--green);font-weight:800}
+  .footer{margin-top:16px;color:#8295aa;font-size:11px;line-height:1.55}
+  .status{font-size:12px;margin-left:4px;color:var(--muted)}
+  .tb-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+  .tb-card{background:#121c26;border:1px solid #2c3d50;border-radius:12px;padding:12px}
+  .tb-card h3{font-size:14px;margin:0 0 8px}
+  .tb-line{display:flex;justify-content:space-between;gap:12px;font-size:12px;padding:3px 0;color:#c9d6e2}
+  .tb-line span:last-child{font-weight:800}
+  .good{color:var(--green)!important}.warn{color:var(--yellow)!important}.bad{color:#ff7b8b!important}
+  .pill{display:inline-block;border:1px solid #40546b;border-radius:999px;padding:2px 7px;font-size:10px;color:#b9c8d8;margin-top:6px}
+  @media(max-width:1000px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.next-grid,.pairs,.tb-grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:620px){.wrap{padding:12px}.next-grid,.pairs,.tb-grid{grid-template-columns:1fr}.result{grid-template-columns:1fr 70px}.result .state{grid-column:1/-1}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Survivor.io Resonance + Twinborn Optimizer V8</h1>
+  <div class="sub">Tell it how many <b>Epic Lv0 choice chests</b> you have. V8 protects <b>maximum resonance now</b>, tracks your Twinborn ownership separately from normal inventory, builds any <b>missing Legend Twinborn first</b>, then pushes owned Twinborns toward <b>Eternal</b>. It never forces the final Eternal Twinborn craft if the resonance loss is worse than the limit you allow.</div>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Resonance + Eternal Twinborn Optimizer</h2>
+      <div class="controls">
+        <div><label>Epic Lv0 chests to spend</label><input id="chestCount" type="number" min="0" max="500" value="0"></div>
+        <div><label>Resonance support slots</label><input id="slotCount" type="number" min="1" max="36" value="18"></div>
+        <div><label>Planning mode</label><select id="planMode"><option value="BAL">Balanced: protect reso, maximize TB progress</option><option value="RES">Resonance-first banking</option><option value="TB">Twinborn rush</option></select></div>
+        <div><label>Twinborn progression goal</label><select id="tbTarget"><option value="AUTO">Auto: missing Twinborn first, then nearest Eternal</option></select></div>
+        <div><label>Resonance loss budget</label><input id="maxLoss" type="number" min="0" max="99999" value="0"></div>
+        <button class="primary" id="optBtn">Optimize all chests</button>
+        <button id="presetBtn">Reload original screenshot preset</button>
+        <button class="danger" id="clearBtn">Clear inventory</button>
+        <span class="status" id="status"></span>
+      </div>
+
+      <div class="priority"><b>Optimization order:</b> 1) maximum resonance energy now → 2) use the fewest chests needed to reach that resonance → 3) in <b>Balanced</b> mode, allow at most your chosen <b>resonance loss budget</b> versus the absolute max and use that budget to maximize Eternal Twinborn progress → 4) when an Eternal Twinborn becomes craftable, compare <b>resonance before vs after the craft</b> → 5) only recommend crafting when the loss is within your allowed limit. The same loss budget is used by Balanced mode when choosing where your Epic chests should go. If the Twinborn goal is already funded, spare chests return to the normal resonance path.</div>
+      <div class="note">Important: Epic/Legend ingredients are consumed when merged. A current <b>Legend Twinborn</b> is assumed to be dismantled only at the final Eternal craft, returning one Legend Lv0 of each component. Until then, those two component pieces are treated as locked inside the Twinborn and are not counted as resonance support.</div>
+
+      <div class="stats">
+        <div class="stat"><span>Max resonance</span><b id="sEnergy">0</b></div>
+        <div class="stat"><span>Resonance gained</span><b id="sEnergyGain">+0</b></div>
+        <div class="stat"><span>Slots filled</span><b id="sSlots">0 / 18</b></div>
+        <div class="stat"><span>Chests allocated</span><b id="sAllocated">0 / 0</b></div>
+        <div class="stat"><span>Next reso breakpoint</span><b id="sNextBreak">—</b></div>
+        <div class="stat"><span>Eternals after merges</span><b id="sRainbows">0</b></div>
+        <div class="stat"><span>Next target</span><b id="sFutureTarget">—</b></div>
+        <div class="stat"><span>Twinborn goal distance</span><b id="sTbDistance">—</b></div>
+        <div class="stat"><span>Craft advice</span><b id="sCraftAdvice">—</b></div>
+      </div>
+
+      <div id="results" class="empty">Enter your chest count and press <b>Optimize all chests</b>.</div>
+    </section>
+
+    <aside class="card">
+      <h2>Resonance energy values</h2>
+      <div id="energyGrid" class="pairs"></div>
+      <div class="note">Purple pieces have no resonance value here, but they are still included because they can legally merge upward into Epic.</div>
+      <div style="height:16px"></div>
+      <h2>Twinborn ownership</h2>
+      <div class="pairs" id="pairs"></div>
+      <div class="note">These checkboxes are <b>separate from your normal tech inventory</b>. Clearing inventory will not remove them. If a Twinborn is missing, Auto mode first banks Epic0 chests toward making that <b>Legend Twinborn</b>; once owned, its roadmap switches to Eternal progression.</div>
+      <div style="height:16px"></div>
+      <h2>Twinborn-aware chest banking</h2>
+      <div class="priority">A chest that is not needed for today’s maximum resonance is now treated as <b>future capital</b>. V8 treats resonance and Twinborn progression as a constrained tradeoff. <b>Balanced</b> mode first finds the absolute maximum resonance for your chest count, then permits only the loss you explicitly allow and spends that headroom to push the selected/nearest Eternal Twinborn as far as possible. Pure Resonance ignores Twinborn progression; Twinborn Rush prioritizes Twinborn funding regardless of the loss budget. This costs no resonance by itself because the app does not force you to merge the parked Epic parts. If a Twinborn is missing, V8 funds its Legend pair first. Once owned, V8 separately checks whether the later Eternal craft is worth the resonance tradeoff.</div>
+    </aside>
+  </div>
+
+  <section class="card" style="margin-top:16px">
+    <h2>Eternal Twinborn roadmap</h2>
+    <div class="note">For an owned pair, “chests to fund” assumes you keep the Legend Twinborn intact until the final Eternal craft, then dismantle it and reclaim one Legend Lv0 of each component. For a missing pair, the first goal is simply one Legend Lv0 of each component to create the Legend Twinborn. “Resonance after craft” is only shown for an owned, fully funded Eternal Twinborn.</div>
+    <div id="tbPlanner" class="tb-grid"></div>
+  </section>
+
+  <section class="card" style="margin-top:16px">
+    <h2>Inventory</h2>
+    <div class="note">Your screenshot inventory is preloaded, including the extra <b>Legend Lv0 Drone</b>. Use the <b>− / +</b> buttons to adjust any count quickly, or type directly into the number box. Untick “Use chests?” if you never want Epic choice chests banked or spent on that tech type.</div>
+    <div class="table-wrap">
+      <table id="invTable">
+        <thead><tr>
+          <th>Tech</th><th class="target-col">Use chests?</th>
+          <th class="purple">P0</th><th class="purple">P1</th><th class="purple">P2</th>
+          <th class="yellow">Epic 0</th><th class="yellow">Epic 1</th><th class="yellow">Epic 2</th><th class="yellow">Epic 3</th>
+          <th class="red">Legend 0</th><th class="red">Legend 1</th><th class="red">Legend 2</th><th class="red">Legend 3</th><th class="red">Legend 4</th>
+          <th class="rainbow">Eternal</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="footer">
+    Merge rules encoded exactly as supplied: P0+P0→P1, P1+P1→P2, P2+P2→Epic0, Epic0+Epic0→Epic1, Epic1+Epic1→Epic2, Epic2+Epic2→Epic3, Epic3+Epic3→Legend0, Legend0+Legend0→Legend1, Legend1+Legend0→Legend2, Legend2+Legend0→Legend3, Legend3+Legend0→Legend4, Legend4+Legend0+Legend0→Eternal. Resonance energy: Epic0 50, Epic1 100, Epic2 150, Epic3 200, Legend0 300, Legend1 400, Legend2 550, Legend3 700, Legend4 850, Eternal 1000. Eternal Twinborn planning assumes the current Legend Twinborn can be dismantled at the final step to recover one Legend0 of each component, and an Eternal Twinborn consumes one Eternal of each paired component. V8 keeps Twinborn ownership separate from inventory and keeps chest placement separate from merge/craft decisions.
+  </div>
+</div>
+
+<script>
+const PARTS=["Rocket","Drill","Soccer","Durian","Lightning","Boomerang","Drone","Forcefield","Laser","Shield","Molotov","Brick"];
+const FIELDS=["P0","P1","P2","Y0","Y1","Y2","Y3","R0","R1","R2","R3","R4","Rainbow"];
+const ENERGY={Y0:50,Y1:100,Y2:150,Y3:200,R0:300,R1:400,R2:550,R3:700,R4:850,Rainbow:1000};
+const TIE_LEVELS=["Rainbow","R4","R3","R2","R1","R0","Y3","Y2","Y1","Y0","P2","P1","P0"];
+const RED_LEVELS=["Rainbow","R4","R3","R2","R1","R0"];
+const SUPPORT_LEVELS=["Rainbow","R4","R3","R2","R1","R0","Y3","Y2","Y1","Y0"];
+const PAIRS=[["Rocket","Drill"],["Soccer","Durian"],["Lightning","Boomerang"],["Drone","Forcefield"],["Laser","Shield"],["Molotov","Brick"]];
+const PAIR_NAMES={"Rocket|Drill":"Rocket Twinborn","Soccer|Durian":"Soccer Twinborn","Lightning|Boomerang":"Lightning Twinborn","Drone|Forcefield":"Drone Twinborn","Laser|Shield":"Laser Twinborn","Molotov|Brick":"Molotov Twinborn"};
+function pairKey(pair){return pair.join("|");}
+function levelName(lv){
+  if(lv==="Rainbow")return "Eternal";
+  if(lv.startsWith("R"))return `Legend ${lv.slice(1)}`;
+  if(lv.startsWith("Y"))return `Epic ${lv.slice(1)}`;
+  if(lv.startsWith("P"))return `Purple ${lv.slice(1)}`;
+  return lv;
+}
+function pairLabel(pair){return `${PAIR_NAMES[pairKey(pair)]||pair.join(" + ")} (${pair[0]} + ${pair[1]})`;}
+
+function num(x){const n=parseInt(x,10);return Number.isFinite(n)&&n>0?n:0;}
+function blankInv(){const o={};for(const p of PARTS){o[p]={};for(const f of FIELDS)o[p][f]=0;}return o;}
+function screenshotPreset(){
+  const v=blankInv();
+  for(const p of ["Rocket","Forcefield","Drill","Lightning","Drone","Laser"])v[p].R4++;
+  for(const p of ["Shield","Brick","Boomerang","Durian","Soccer","Molotov"])v[p].R3++;
+  v.Drone.R0++;
+  v.Shield.Y3++;
+  for(const p of ["Drill","Drone"])v[p].Y3++;
+  for(const p of ["Forcefield","Shield","Durian","Soccer","Drone","Molotov"])v[p].Y2++;
+  for(const p of ["Rocket","Brick","Boomerang","Durian","Lightning","Soccer","Forcefield"])v[p].Y1++;
+  for(const p of ["Drill","Lightning","Drone","Laser"])v[p].Y0++;
+  v.Rocket.P2++;
+  for(const p of ["Forcefield","Drill","Drone","Laser"])v[p].P2++;
+  for(const p of ["Rocket","Forcefield","Shield","Boomerang","Durian","Drill","Lightning","Soccer","Drone","Laser","Molotov"])v[p].P1++;
+  for(const p of ["Forcefield","Drill","Soccer","Drone","Laser"])v[p].P0++;
+  return v;
+}
+
+let inventory=screenshotPreset();
+let targets=Object.fromEntries(PARTS.map(p=>[p,true]));
+function defaultTwinbornOwned(){return Object.fromEntries(PAIRS.map(pair=>[pairKey(pair),true]));}
+let twinbornOwned=defaultTwinbornOwned();
+function isTwinbornOwned(pair){return !!twinbornOwned[pairKey(pair)];}
+function normalizeInventory(src){const out=blankInv();for(const p of PARTS)for(const f of FIELDS)out[p][f]=num(src?.[p]?.[f]);return out;}
+
+function emptyState(){const s={};for(const k of TIE_LEVELS)s[k]=0;return s;}
+function cloneState(s){const o={};for(const k of TIE_LEVELS)o[k]=s[k]||0;return o;}
+function stateCmp(a,b){for(const k of TIE_LEVELS){const d=(a[k]||0)-(b[k]||0);if(d)return d;}return 0;}
+function betterCand(a,b){if(!b)return true;if(a.energy!==b.energy)return a.energy>b.energy;return stateCmp(a.state,b.state)>0;}
+function redTieCode(state){let z=0;for(const k of RED_LEVELS)z=z*100+(state[k]||0);return z;}
+function addState(a,b){const s=emptyState();for(const k of TIE_LEVELS)s[k]=(a[k]||0)+(b[k]||0);return s;}
+function totalRainbows(state){return state.Rainbow||0;}
+
+function makePartSolver(raw,S,bonusR0=0,consumeEternal=0){
+  // Purple has 0 resonance value, so merging it upward can never reduce the objective.
+  let p0=raw.P0||0;
+  let p1=(raw.P1||0)+Math.floor(p0/2),p0l=p0%2;
+  let p2=(raw.P2||0)+Math.floor(p1/2),p1l=p1%2;
+  let y0fromp=Math.floor(p2/2),p2l=p2%2;
+
+  const redCache=new Map(),y3Cache=new Map(),y2Cache=new Map(),y1Cache=new Map();
+
+  function solveRed(extraR0){
+    if(redCache.has(extraR0))return redCache.get(extraR0);
+    const init=[(raw.R0||0)+extraR0+bonusR0,raw.R1||0,raw.R2||0,raw.R3||0,raw.R4||0,raw.Rainbow||0];
+    const q=[init],seen=new Set([init.join(",")]);let qi=0;
+    const best=Array(S+1).fill(null);
+
+    while(qi<q.length){
+      const st=q[qi++],[r0,r1,r2,r3,r4,rb]=st;
+      if(rb>=consumeEternal){
+        const full=emptyState();Object.assign(full,{R0:r0,R1:r1,R2:r2,R3:r3,R4:r4,Rainbow:rb-consumeEternal});
+        const vals=[];
+        for(const k of RED_LEVELS)for(let i=0;i<(full[k]||0);i++)vals.push(ENERGY[k]);
+        let sum=0,maxK=Math.min(S,vals.length);
+        for(let k=0;k<=maxK;k++){
+          if(k>0)sum+=vals[k-1];
+          const cand={energy:sum,state:cloneState(full)};
+          if(betterCand(cand,best[k]))best[k]=cand;
+        }
+      }
+
+      const nxt=[];
+      if(r0>=2)nxt.push([r0-2,r1+1,r2,r3,r4,rb]);
+      if(r1>=1&&r0>=1)nxt.push([r0-1,r1-1,r2+1,r3,r4,rb]);
+      if(r2>=1&&r0>=1)nxt.push([r0-1,r1,r2-1,r3+1,r4,rb]);
+      if(r3>=1&&r0>=1)nxt.push([r0-1,r1,r2,r3-1,r4+1,rb]);
+      if(r4>=1&&r0>=2)nxt.push([r0-2,r1,r2,r3,r4-1,rb+1]);
+      for(const ns of nxt){const key=ns.join(",");if(!seen.has(key)){seen.add(key);q.push(ns);}}
+    }
+    redCache.set(extraR0,best);return best;
+  }
+
+  function combineLevel(level,count,futureFn){
+    const best=Array(S+1).fill(null),parity=count%2,maxL=Math.min(count,S);
+    // Leaving more than S same-tier pieces is dominated: only S support slots can ever use them,
+    // while merging the surplus creates a stronger per-slot piece above this tier.
+    for(let l=parity;l<=maxL;l+=2){
+      const m=(count-l)/2,fut=futureFn(m);
+      for(let kf=0;kf<=S;kf++){
+        const fc=fut[kf];if(!fc)continue;
+        const maxKC=Math.min(l,S-kf);
+        for(let kc=0;kc<=maxKC;kc++){
+          const state=cloneState(fc.state);state[level]=l;
+          const cand={energy:fc.energy+kc*ENERGY[level],state},k=kf+kc;
+          if(betterCand(cand,best[k]))best[k]=cand;
+        }
+      }
+    }
+    return best;
+  }
+
+  function y3solve(count){if(y3Cache.has(count))return y3Cache.get(count);const v=combineLevel("Y3",count,m=>solveRed(m));y3Cache.set(count,v);return v;}
+  function y2solve(count){if(y2Cache.has(count))return y2Cache.get(count);const v=combineLevel("Y2",count,m=>y3solve((raw.Y3||0)+m));y2Cache.set(count,v);return v;}
+  function y1solve(count){if(y1Cache.has(count))return y1Cache.get(count);const v=combineLevel("Y1",count,m=>y2solve((raw.Y2||0)+m));y1Cache.set(count,v);return v;}
+
+  return function(addY0){
+    // Y0+Y0 -> Y1 is resonance-neutral (50+50 = 100) and improves slot efficiency,
+    // so it is always safe to carry pairs upward.
+    const y0=(raw.Y0||0)+addY0+y0fromp,y0l=y0%2;
+    const y1count=(raw.Y1||0)+Math.floor(y0/2),fut=y1solve(y1count);
+    const best=Array(S+1).fill(null);
+    for(let kf=0;kf<=S;kf++){
+      const fc=fut[kf];if(!fc)continue;
+      for(let kc=0;kc<=Math.min(y0l,S-kf);kc++){
+        const state=cloneState(fc.state);state.Y0=y0l;state.P2=p2l;state.P1=p1l;state.P0=p0l;
+        const cand={energy:fc.energy+kc*ENERGY.Y0,state},k=kf+kc;
+        if(betterCand(cand,best[k]))best[k]=cand;
+      }
+    }
+    return best;
+  };
+}
+
+function buildPartOptions(raw,N,S,allow,craftSpec=null){
+  const solve=makePartSolver(raw,S,craftSpec?.bonusR0||0,craftSpec?.consumeEternal||0),opts=[];
+  for(let k=0;k<=S;k++){
+    let bestE=-1,bestTie=-1;
+    const maxX=allow?N:0;
+    for(let x=0;x<=maxX;x++){
+      const cand=solve(x)[k];if(!cand)continue;
+      const tie=redTieCode(cand.state);
+      // If more chests do not improve resonance or Red/Rainbow progression, that allocation is dominated.
+      if(cand.energy>bestE||(cand.energy===bestE&&tie>bestTie)){
+        opts.push({x,k,energy:cand.energy,tie,state:cand.state});
+        bestE=cand.energy;bestTie=tie;
+      }
+    }
+  }
+  return opts;
+}
+
+function optimizeCore(N,S,inv=inventory,targetMap=targets,preferFewerChests=false,craftPair=null){
+  const craftSet=new Set(craftPair||[]);
+  const partOpts={};
+  for(const p of PARTS){
+    const craftSpec=craftSet.has(p)?{bonusR0:1,consumeEternal:1}:null;
+    partOpts[p]=buildPartOptions(inv[p],N,S,targetMap[p],craftSpec);
+  }
+
+  const stride=S+1,W=(N+1)*stride,idx=(c,s)=>c*stride+s;
+  let ePrev=new Float64Array(W);ePrev.fill(-1);
+  let tPrev=new Float64Array(W);tPrev.fill(-1);
+  ePrev[idx(0,0)]=0;tPrev[idx(0,0)]=0;
+  const backs=[];
+
+  for(let pi=0;pi<PARTS.length;pi++){
+    const p=PARTS[pi],opts=partOpts[p];
+    const eNext=new Float64Array(W);eNext.fill(-1);
+    const tNext=new Float64Array(W);tNext.fill(-1);
+    const bPrevC=new Int16Array(W);bPrevC.fill(-1);
+    const bPrevS=new Int8Array(W);bPrevS.fill(-1);
+    const bOpt=new Int16Array(W);bOpt.fill(-1);
+
+    for(let c=0;c<=N;c++)for(let s=0;s<=S;s++){
+      const ii=idx(c,s),baseE=ePrev[ii];if(baseE<0)continue;
+      const baseT=tPrev[ii];
+      for(let oi=0;oi<opts.length;oi++){
+        const o=opts[oi],nc=c+o.x,ns=s+o.k;if(nc>N||ns>S)continue;
+        const jj=idx(nc,ns),ne=baseE+o.energy,nt=baseT+o.tie;
+        if(ne>eNext[jj]||(ne===eNext[jj]&&nt>tNext[jj])){
+          eNext[jj]=ne;tNext[jj]=nt;bPrevC[jj]=c;bPrevS[jj]=s;bOpt[jj]=oi;
+        }
+      }
+    }
+    backs.push({bPrevC,bPrevS,bOpt,opts});ePrev=eNext;tPrev=tNext;
+  }
+
+  let best=null;
+  for(let c=0;c<=N;c++)for(let s=0;s<=S;s++){
+    const ii=idx(c,s),e=ePrev[ii];if(e<0)continue;
+    const t=tPrev[ii];
+    const tieWin=preferFewerChests
+      ? (c<best?.c || (c===best?.c && t>(best?.t??-1)))
+      : (t>(best?.t??-1) || (t===(best?.t??-1) && c<best?.c));
+    if(!best||e>best.e||(e===best.e&&tieWin))best={e,t,c,s};
+  }
+  if(!best)return null;
+
+  let c=best.c,s=best.s;const alloc=[];
+  for(let pi=PARTS.length-1;pi>=0;pi--){
+    const b=backs[pi],ii=idx(c,s),oi=b.bOpt[ii];if(oi<0)return null;
+    const o=b.opts[oi];alloc.push({p:PARTS[pi],...o});
+    const pc=b.bPrevC[ii],ps=b.bPrevS[ii];c=pc;s=ps;
+  }
+  alloc.reverse();return {...best,alloc};
+}
+
+function selectedText(state,k){
+  let left=k;const out=[];
+  for(const lv of SUPPORT_LEVELS){const take=Math.min(left,state[lv]||0);if(take>0){out.push(`${levelName(lv)} ×${take}`);left-=take;}if(left<=0)break;}
+  return out.length?out.join(" · "):"—";
+}
+function stateText(state){
+  const out=[];for(const lv of TIE_LEVELS){const n=state[lv]||0;if(n>0)out.push(`${levelName(lv)} ×${n}`);}return out.length?out.join(" · "):"—";
+}
+function supportEnergy(state,k){
+  let left=k,e=0;for(const lv of SUPPORT_LEVELS){const take=Math.min(left,state[lv]||0);e+=take*ENERGY[lv];left-=take;if(left<=0)break;}return e;
+}
+function sumFinalState(alloc){let s=emptyState();for(const a of alloc)s=addState(s,a.state);return s;}
+
+
+function lowerY0Units(raw,addY0=0){
+  let p0=raw.P0||0;
+  let p1=(raw.P1||0)+Math.floor(p0/2);
+  let p2=(raw.P2||0)+Math.floor(p1/2);
+  const y0fromp=Math.floor(p2/2);
+  return (raw.Y0||0)+addY0+y0fromp+2*(raw.Y1||0)+4*(raw.Y2||0)+8*(raw.Y3||0);
+}
+
+function redAnchorRank(raw){
+  if((raw.R4||0)>0)return 5;
+  if((raw.R3||0)>0)return 4;
+  if((raw.R2||0)>0)return 3;
+  if((raw.R1||0)>0)return 2;
+  if((raw.R0||0)>0)return 1;
+  return 0;
+}
+
+function betterFutureScore(a,b){
+  if(!b)return true;
+  if(a.ready!==b.ready)return a.ready>b.ready;
+  if(a.hist!==b.hist)return a.hist>b.hist;
+  return a.leverage>b.leverage;
+}
+
+function distributeFutureBank(inv,baseAlloc,leftovers,targetMap){
+  const baseX=Object.fromEntries(PARTS.map(p=>[p,0]));
+  for(const a of baseAlloc)baseX[a.p]=a.x||0;
+  if(leftovers<=0)return Object.fromEntries(PARTS.map(p=>[p,0]));
+
+  let prev=Array(leftovers+1).fill(null);
+  prev[0]={ready:0,hist:0n,leverage:0};
+  const backs=[];
+
+  for(const p of PARTS){
+    const next=Array(leftovers+1).fill(null);
+    const back=new Int16Array(leftovers+1);back.fill(-1);
+    const baseUnits=lowerY0Units(inv[p],baseX[p]);
+    const anchor=redAnchorRank(inv[p]);
+    const maxZ=targetMap[p]?leftovers:0;
+    for(let used=0;used<=leftovers;used++){
+      const cur=prev[used];if(!cur)continue;
+      for(let z=0;z<=Math.min(maxZ,leftovers-used);z++){
+        const units=baseUnits+z;
+        const ready=Math.floor(units/16);
+        const rem=units%16;
+        const hist=rem? (1n << BigInt(rem*4)) : 0n;
+        const cand={ready:cur.ready+ready,hist:cur.hist+hist,leverage:cur.leverage+ready*anchor};
+        const nu=used+z;
+        if(betterFutureScore(cand,next[nu])){next[nu]=cand;back[nu]=z;}
+      }
+    }
+    backs.push(back);prev=next;
+  }
+
+  const out=Object.fromEntries(PARTS.map(p=>[p,0]));
+  let used=leftovers;
+  for(let i=PARTS.length-1;i>=0;i--){
+    const z=backs[i][used];
+    if(z<0)throw new Error('Could not allocate every Epic chest.');
+    out[PARTS[i]]=z;used-=z;
+  }
+  return out;
+}
+
+function cloneInventory(inv){
+  const out=blankInv();
+  for(const p of PARTS)for(const f of FIELDS)out[p][f]=inv[p][f]||0;
+  return out;
+}
+
+function inventoryWithAllocation(inv,allocMap){
+  const out=cloneInventory(inv);
+  for(const p of PARTS)out[p].Y0+=(allocMap[p]||0);
+  return out;
+}
+
+function nextR0Distance(raw){
+  const units=lowerY0Units(raw,0);
+  const rem=units%16;
+  return rem===0?16:16-rem;
+}
+
+function findNextResonanceBreakpoint(inv,S,currentEnergy,targetMap,maxFuture=256){
+  const at=d=>optimizeCore(d,S,inv,targetMap);
+  let hi=1,res=at(hi);
+  while(hi<maxFuture && (!res || res.e<=currentEnergy)){hi*=2;res=at(Math.min(hi,maxFuture));if(hi>maxFuture)hi=maxFuture;}
+  if(!res||res.e<=currentEnergy)return null;
+  hi=Math.min(hi,maxFuture);let lo=0,best=res;
+  while(lo+1<hi){
+    const mid=Math.floor((lo+hi)/2),r=at(mid);
+    if(r&&r.e>currentEnergy){hi=mid;best=r;}else lo=mid;
+  }
+  if(hi!==maxFuture||best.e<=currentEnergy)best=at(hi);
+  return best&&best.e>currentEnergy?{chests:hi,result:best}:null;
+}
+
+function allocationSummary(alloc){
+  return alloc.filter(a=>a.x>0).map(a=>`${a.p} +${a.x}`).join(' · ')||'—';
+}
+
+function zeroAllocMap(){return Object.fromEntries(PARTS.map(p=>[p,0]));}
+function chestMapFromResult(result){
+  const m=zeroAllocMap();
+  if(result)for(const a of result.alloc)m[a.p]=a.x||0;
+  return m;
+}
+function addAllocInto(dst,src){for(const p of PARTS)dst[p]=(dst[p]||0)+(src[p]||0);return dst;}
+function byPartResult(result){return Object.fromEntries((result?.alloc||[]).map(a=>[a.p,a]));}
+const FUTURE_TARGET_LEVELS=["Rainbow","R4","R3","R2","R1","R0","Y3","Y2","Y1","Y0"];
+function prettyLevel(lv){return levelName(lv);}
+function routeTargetDetails(beforeResult,afterResult){
+  const b=byPartResult(beforeResult),a=byPartResult(afterResult),out=[];
+  const routed=new Set(PARTS.filter(p=>(a[p]?.x||0)>0));
+  const scan=(filterToRoute)=>{
+    const found=[];
+    for(const p of PARTS){
+      if(filterToRoute&&routed.size&&!routed.has(p))continue;
+      const bs=b[p]?.state||emptyState(),as=a[p]?.state||emptyState();
+      for(let i=0;i<FUTURE_TARGET_LEVELS.length;i++){
+        const lv=FUTURE_TARGET_LEVELS[i],d=(as[lv]||0)-(bs[lv]||0);
+        if(d>0){found.push({p,lv,d,rank:i,label:`${p} → ${prettyLevel(lv)} +${d}`});break;}
+      }
+    }
+    return found;
+  };
+  out.push(...scan(true));
+  if(!out.length)out.push(...scan(false));
+  out.sort((x,y)=>x.rank-y.rank||y.d-x.d||x.p.localeCompare(y.p));
+  return out;
+}
+function routeTargetSummary(beforeResult,afterResult){
+  const d=routeTargetDetails(beforeResult,afterResult);
+  return d.length?d.slice(0,3).map(x=>x.label).join(" · "):"resonance slot improvement";
+}
+function partialRouteBank(beforeResult,nextBreak,leftovers){
+  const out=zeroAllocMap();
+  if(leftovers<=0||!nextBreak)return out;
+  const route=chestMapFromResult(nextBreak.result);
+  const targetRanks=Object.fromEntries(PARTS.map(p=>[p,99]));
+  for(const d of routeTargetDetails(beforeResult,nextBreak.result))targetRanks[d.p]=d.rank;
+  const order=PARTS.filter(p=>route[p]>0).sort((a,b)=>
+    targetRanks[a]-targetRanks[b] || route[b]-route[a] || a.localeCompare(b));
+  let left=leftovers;
+  for(const p of order){
+    const take=Math.min(left,route[p]);out[p]+=take;left-=take;if(left<=0)break;
+  }
+  return out;
+}
+function routeAwareFutureBank(inv,S,currentEnergy,leftovers,targetMap,maxFuture=512){
+  const bank=zeroAllocMap(),steps=[];
+  let working=cloneInventory(inv),left=leftovers;
+  while(left>0){
+    const before=optimizeCore(0,S,working,targetMap,true);
+    const next=findNextResonanceBreakpoint(working,S,before.e,targetMap,maxFuture);
+    if(!next){
+      const fallback=distributeFutureBank(working,[],left,targetMap);
+      addAllocInto(bank,fallback);working=inventoryWithAllocation(working,fallback);
+      steps.push({kind:"fallback",spent:left,target:"nearest Legend0 fuel (look-ahead fallback)"});
+      left=0;break;
+    }
+    const target=routeTargetSummary(before,next.result),gain=next.result.e-before.e;
+    if(next.chests>left){
+      const partial=partialRouteBank(before,next,left);
+      addAllocInto(bank,partial);working=inventoryWithAllocation(working,partial);
+      steps.push({kind:"bank",spent:left,target,gain,needed:next.chests,route:allocationSummary(next.result.alloc)});
+      left=0;break;
+    }
+    const full=chestMapFromResult(next.result);
+    addAllocInto(bank,full);working=inventoryWithAllocation(working,full);
+    steps.push({kind:"reach",spent:next.chests,target,gain,needed:next.chests,route:allocationSummary(next.result.alloc)});
+    left-=next.chests;
+  }
+  return {bank,steps,working};
+}
+
+
+function minChestsPartToLegend0(raw){
+  if((raw.R0||0)>0)return 0;
+  const units=lowerY0Units(raw,0);
+  return units>=16?0:16-units;
+}
+function legendTwinbornFunding(inv,pair){
+  const needs={};let total=0;
+  for(const p of pair){const n=minChestsPartToLegend0(inv[p]);needs[p]=n;total+=n;}
+  return {pair,needs,total,goal:"Legend"};
+}
+function canReachEternalWithExtraR0(raw,extraR0,hasLegendTwinborn){
+  const init=[(raw.R0||0)+extraR0+(hasLegendTwinborn?1:0),raw.R1||0,raw.R2||0,raw.R3||0,raw.R4||0,raw.Rainbow||0];
+  const q=[init],seen=new Set([init.join(",")]);
+  for(let i=0;i<q.length;i++){
+    const [r0,r1,r2,r3,r4,rb]=q[i];if(rb>=1)return true;
+    const nxt=[];
+    if(r0>=2)nxt.push([r0-2,r1+1,r2,r3,r4,rb]);
+    if(r1>=1&&r0>=1)nxt.push([r0-1,r1-1,r2+1,r3,r4,rb]);
+    if(r2>=1&&r0>=1)nxt.push([r0-1,r1,r2-1,r3+1,r4,rb]);
+    if(r3>=1&&r0>=1)nxt.push([r0-1,r1,r2,r3-1,r4+1,rb]);
+    if(r4>=1&&r0>=2)nxt.push([r0-2,r1,r2,r3,r4-1,rb+1]);
+    for(const ns of nxt){const k=ns.join(",");if(!seen.has(k)){seen.add(k);q.push(ns);}}
+  }
+  return false;
+}
+function minChestsPartToEternal(raw,hasLegendTwinborn,maxFuture=500){
+  // Eternal needs at most seven Legend0-equivalents from scratch. Search only that tiny Red merge space,
+  // then convert the missing Legend0 count back into exact Epic0 chest cost using the lower-tier inventory.
+  let needR0=Infinity;
+  for(let r=0;r<=7;r++){if(canReachEternalWithExtraR0(raw,r,hasLegendTwinborn)){needR0=r;break;}}
+  if(!Number.isFinite(needR0))return Infinity;
+  const lowerUnits=lowerY0Units(raw,0);
+  const chests=Math.max(0,needR0*16-lowerUnits);
+  return chests<=maxFuture?chests:Infinity;
+}
+function pairFunding(inv,pair,maxFuture=500){
+  const owned=isTwinbornOwned(pair),needs={};let total=0;
+  for(const p of pair){const n=minChestsPartToEternal(inv[p],owned,maxFuture);needs[p]=n;total+=n;}
+  return {pair,needs,total,goal:"Eternal",owned};
+}
+function allPairFunding(inv,maxFuture=500){return PAIRS.map(pair=>pairFunding(inv,pair,maxFuture));}
+function twinbornGoalFunding(inv,pair){return isTwinbornOwned(pair)?pairFunding(inv,pair):legendTwinbornFunding(inv,pair);}
+function twinbornGoalCandidates(inv,targetMap,targetMode="AUTO",includeFunded=false){
+  let pairs=PAIRS.filter(pair=>pair.every(p=>targetMap[p]));
+  if(targetMode!=="AUTO")pairs=pairs.filter(pair=>pairKey(pair)===targetMode);
+  let plans=pairs.map(pair=>twinbornGoalFunding(inv,pair)).filter(x=>Number.isFinite(x.total)&&(includeFunded||x.total>0));
+  if(targetMode==="AUTO"){
+    const missing=plans.filter(x=>!isTwinbornOwned(x.pair));
+    if(missing.length)plans=missing; // Missing Legend Twinborns always come before Eternal progression in Auto mode.
+  }
+  plans.sort((a,b)=>a.total-b.total||PAIRS.findIndex(p=>pairKey(p)===pairKey(a.pair))-PAIRS.findIndex(p=>pairKey(p)===pairKey(b.pair)));
+  return plans;
+}
+function selectedPairFromUI(inv){
+  const val=document.getElementById("tbTarget").value;
+  if(val!=="AUTO")return PAIRS.find(p=>pairKey(p)===val)||PAIRS[0];
+  const plans=twinbornGoalCandidates(inv,targets,"AUTO",true);
+  return plans[0]?.pair||PAIRS[0];
+}
+function allocateTowardTwinborn(inv,leftovers,targetMap,targetMode="AUTO"){
+  const bank=zeroAllocMap(),steps=[];let working=cloneInventory(inv),left=leftovers;
+  const completed=new Set();
+  while(left>0){
+    let candidates=twinbornGoalCandidates(working,targetMap,targetMode,false).filter(x=>!completed.has(pairKey(x.pair)));
+    if(!candidates.length)break;
+    const plan=candidates[0],take=Math.min(left,plan.total);
+    const order=[...plan.pair].sort((a,b)=>plan.needs[a]-plan.needs[b]||a.localeCompare(b));
+    let rem=take;
+    for(const p of order){const z=Math.min(rem,plan.needs[p]);bank[p]+=z;working[p].Y0+=z;rem-=z;if(rem<=0)break;}
+    const routeParts=[];let routeRem=take;for(const p of order){const z=Math.min(routeRem,plan.needs[p]);if(z>0)routeParts.push(`${p} +${z}`);routeRem-=z;}
+    steps.push({pair:plan.pair,goal:plan.goal,spent:take,needed:plan.total,route:routeParts.join(" · ")});
+    left-=take;
+    if(take>=plan.total)completed.add(pairKey(plan.pair));
+    if(targetMode!=="AUTO"&&completed.has(targetMode))break;
+  }
+  return {bank,steps,working,left};
+}
+
+function nearestTwinbornPlan(inv,targetMap,targetMode="AUTO"){
+  return twinbornGoalCandidates(inv,targetMap,targetMode,false)[0]||null;
+}
+function hybridFutureBank(inv,S,leftovers,targetMap,targetMode="AUTO",mode="BAL",maxFuture=512){
+  const bank=zeroAllocMap(),steps=[];let working=cloneInventory(inv),left=leftovers;
+  while(left>0){
+    const before=optimizeCore(0,S,working,targetMap,true);
+    const resNext=findNextResonanceBreakpoint(working,S,before.e,targetMap,maxFuture);
+    const tbNext=nearestTwinbornPlan(working,targetMap,targetMode);
+    let choose;
+    if(mode==="RES")choose=resNext?"RES":(tbNext?"TB":null);
+    else if(mode==="TB")choose=tbNext?"TB":(resNext?"RES":null);
+    else {
+      if(resNext&&tbNext)choose=resNext.chests<=tbNext.total?"RES":"TB";
+      else choose=resNext?"RES":(tbNext?"TB":null);
+    }
+    if(!choose){
+      const fallback=distributeFutureBank(working,[],left,targetMap);addAllocInto(bank,fallback);working=inventoryWithAllocation(working,fallback);
+      steps.push({kind:"fallback",spent:left,label:"generic Legend0 progression"});left=0;break;
+    }
+    if(choose==="RES"){
+      const use=Math.min(left,resNext.chests);
+      const partial=use<resNext.chests?partialRouteBank(before,resNext,use):chestMapFromResult(resNext.result);
+      addAllocInto(bank,partial);working=inventoryWithAllocation(working,partial);
+      steps.push({kind:"res",spent:use,needed:resNext.chests,label:`Resonance +${(resNext.result.e-before.e).toLocaleString()}`,route:allocationSummary(resNext.result.alloc)});
+      left-=use;if(use<resNext.chests)break;
+    }else{
+      const use=Math.min(left,tbNext.total);
+      const one=allocateTowardTwinborn(working,use,targetMap,pairKey(tbNext.pair));
+      addAllocInto(bank,one.bank);working=one.working;
+      steps.push({kind:"tb",spent:use,needed:tbNext.total,label:`${pairLabel(tbNext.pair)} ${tbNext.goal} funding`,pair:tbNext.pair,goal:tbNext.goal});
+      left-=use;if(use<tbNext.total)break;
+    }
+  }
+  return {bank,steps,working,left};
+}
+
+
+function sumAllocMap(m){return PARTS.reduce((n,p)=>n+(m[p]||0),0);}
+function planChestAllocation(N,S,inv,targetMap,targetMode,mode,maxLoss){
+  const absolute=optimizeCore(N,S,inv,targetMap,true);
+  if(!absolute)return null;
+  const threshold=absolute.e-maxLoss;
+  let chosenForced=zeroAllocMap(),chosenForcedCount=0;
+
+  if(mode!=="RES"&&N>0){
+    let maxForce=N;
+    if(targetMode!=="AUTO"){
+      const pair=PAIRS.find(p=>pairKey(p)===targetMode);
+      if(pair)maxForce=Math.min(N,twinbornGoalFunding(inv,pair).total);
+    }
+    const evaluate=k=>{
+      const fp=allocateTowardTwinborn(inv,k,targetMap,targetMode),forced=fp.bank,used=sumAllocMap(forced);
+      const w=inventoryWithAllocation(inv,forced),remaining=N-used;
+      const r=optimizeCore(remaining,S,w,targetMap,true);
+      return r?{energy:r.e,forced,used,res:r,working:w}:null;
+    };
+    if(mode==="TB"){
+      const e=evaluate(maxForce);if(e){chosenForced=e.forced;chosenForcedCount=e.used;}
+    }else{
+      // Forced Twinborn allocations are nested: k+1 is the same commitment plus one more chest,
+      // so achievable max resonance cannot improve as k grows. Binary-search the largest safe commitment.
+      let lo=0,hi=maxForce,best=evaluate(0);
+      while(lo<=hi){
+        const mid=Math.floor((lo+hi)/2),e=evaluate(mid);
+        if(e&&e.energy>=threshold){best=e;lo=mid+1;}else hi=mid-1;
+      }
+      if(best){chosenForced=best.forced;chosenForcedCount=best.used;}
+    }
+  }
+
+  let working=inventoryWithAllocation(inv,chosenForced),remaining=N-chosenForcedCount;
+  const resPlan=optimizeCore(remaining,S,working,targetMap,true);
+  const resMap=chestMapFromResult(resPlan);working=inventoryWithAllocation(working,resMap);
+  remaining-=resPlan.c;
+
+  let future;
+  if(remaining>0){
+    if(mode==="RES")future=routeAwareFutureBank(working,S,optimizeCore(0,S,working,targetMap,true).e,remaining,targetMap,512);
+    else future=hybridFutureBank(working,S,remaining,targetMap,targetMode,mode==="TB"?"TB":"BAL",512);
+  }else future={bank:zeroAllocMap(),steps:[],working,left:0};
+
+  const total=zeroAllocMap();addAllocInto(total,chosenForced);addAllocInto(total,resMap);addAllocInto(total,future.bank);
+  const finalInv=inventoryWithAllocation(inv,total),fixed=optimizeCore(0,S,finalInv,targetMap,true);
+  return {absolute,threshold,forcedMap:chosenForced,forcedCount:chosenForcedCount,resPlan,resMap,future,total,finalInv,fixed};
+}
+
+function craftComparison(inv,pair,S){
+  const before=optimizeCore(0,S,inv,targets,true,null);
+  if(!isTwinbornOwned(pair))return {craftable:false,before,reason:"Legend Twinborn not owned"};
+  const after=optimizeCore(0,S,inv,targets,true,pair);
+  if(!after)return {craftable:false,before};
+  return {craftable:true,before,after,loss:before.e-after.e};
+}
+function renderTwinbornPlanner(inv,S,maxLoss){
+  const el=document.getElementById("tbPlanner");
+  el.innerHTML=PAIRS.map(pair=>{
+    const owned=isTwinbornOwned(pair);
+    if(!owned){
+      const plan=legendTwinbornFunding(inv,pair);
+      const funded=plan.total===0;
+      return `<div class="tb-card"><h3>${pairLabel(pair)}</h3>
+        <div class="tb-line"><span>Ownership</span><span class="bad">MISSING</span></div>
+        <div class="tb-line"><span>${pair[0]} → Legend0</span><span>+${plan.needs[pair[0]]} Epic0</span></div>
+        <div class="tb-line"><span>${pair[1]} → Legend0</span><span>+${plan.needs[pair[1]]} Epic0</span></div>
+        <div class="tb-line"><span>Epic0 to make Legend Twinborn</span><span class="${funded?"good":"warn"}">${plan.total}</span></div>
+        <span class="pill ${funded?"good":"warn"}">${funded?"FUNDED — CRAFT LEGEND TWINBORN":`BUILD MISSING TWINBORN FIRST`}</span></div>`;
+    }
+    const plan=pairFunding(inv,pair),comp=plan.total===0?craftComparison(inv,pair,S):null;
+    const loss=comp?.craftable?comp.loss:null,safe=loss!==null&&loss<=maxLoss;
+    const status=plan.total>0?`Need ${plan.total} Epic0 chest${plan.total===1?"":"s"}`:(safe?"ETERNAL CRAFT OK":"WAIT FOR RESONANCE");
+    const cls=plan.total>0?"warn":(safe?"good":"bad");
+    return `<div class="tb-card"><h3>${pairLabel(pair)}</h3>
+      <div class="tb-line"><span>Ownership</span><span class="good">LEGEND OWNED</span></div>
+      <div class="tb-line"><span>${pair[0]} Eternal funding</span><span>${Number.isFinite(plan.needs[pair[0]])?`+${plan.needs[pair[0]]} Epic0`:"—"}</span></div>
+      <div class="tb-line"><span>${pair[1]} Eternal funding</span><span>${Number.isFinite(plan.needs[pair[1]])?`+${plan.needs[pair[1]]} Epic0`:"—"}</span></div>
+      <div class="tb-line"><span>Total to fund Eternal Twinborn</span><span class="${plan.total===0?"good":"warn"}">${Number.isFinite(plan.total)?plan.total:"500+"}</span></div>
+      ${comp?.craftable?`<div class="tb-line"><span>Resonance before craft</span><span>${comp.before.e.toLocaleString()}</span></div><div class="tb-line"><span>Resonance after craft</span><span>${comp.after.e.toLocaleString()}</span></div><div class="tb-line"><span>Craft resonance change</span><span class="${loss<=maxLoss?"good":"bad"}">${loss>0?"−":"+"}${Math.abs(loss).toLocaleString()}</span></div>`:""}
+      <span class="pill ${cls}">${status}</span></div>`;
+  }).join("");
+}
+
+
+function readTable(){
+  for(const p of PARTS){
+    for(const f of FIELDS){const el=document.querySelector(`[data-part="${p}"][data-field="${f}"]`);inventory[p][f]=num(el.value);}
+    targets[p]=document.querySelector(`[data-target="${p}"]`).checked;
+  }
+}
+function renderTable(){
+  const tb=document.querySelector("#invTable tbody");tb.innerHTML="";
+  for(const p of PARTS){
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${p}</td><td><input type="checkbox" data-target="${p}" ${targets[p]?"checked":""}></td>`+
+      FIELDS.map(f=>`<td><div class="inv-stepper"><button type="button" class="step-btn" data-step="-1" data-part="${p}" data-field="${f}" aria-label="Decrease ${p} ${levelName(f)}">−</button><input class="inv-input" type="number" min="0" max="999" value="${inventory[p][f]||0}" data-part="${p}" data-field="${f}"><button type="button" class="step-btn" data-step="1" data-part="${p}" data-field="${f}" aria-label="Increase ${p} ${levelName(f)}">+</button></div></td>`).join("");
+    tb.appendChild(tr);
+  }
+  tb.querySelectorAll("input").forEach(el=>el.addEventListener("change",()=>{readTable();saveLocal();}));
+  tb.querySelectorAll(".step-btn").forEach(btn=>btn.addEventListener("click",()=>{
+    const p=btn.dataset.part,f=btn.dataset.field,step=parseInt(btn.dataset.step,10)||0;
+    const el=tb.querySelector(`.inv-input[data-part="${p}"][data-field="${f}"]`);
+    const current=Math.max(0,parseInt(el.value,10)||0);
+    el.value=Math.max(0,Math.min(999,current+step));
+    readTable();saveLocal();
+  }));
+}
+
+function runOptimize(){
+  readTable();saveLocal();
+  const N=Math.max(0,Math.min(500,num(document.getElementById("chestCount").value)));
+  const S=Math.max(1,Math.min(36,num(document.getElementById("slotCount").value)||18));
+  const maxLoss=Math.max(0,num(document.getElementById("maxLoss").value));
+  document.getElementById("chestCount").value=N;document.getElementById("slotCount").value=S;document.getElementById("maxLoss").value=maxLoss;
+  if(N>0&&!PARTS.some(p=>targets[p])){alert("Select at least one tech part that can receive Epic chests.");return;}
+  const status=document.getElementById("status");status.textContent="Calculating resonance + Eternal Twinborn path…";
+  document.getElementById("optBtn").disabled=true;
+
+  setTimeout(()=>{
+    try{
+      const t0=performance.now();
+      const base=optimizeCore(0,S,inventory,targets,true);
+      if(!base)throw new Error("No valid starting solution found.");
+      const targetMode=document.getElementById("tbTarget").value;
+      const planMode=document.getElementById("planMode").value;
+      const plan=planChestAllocation(N,S,inventory,targets,targetMode,planMode,maxLoss);
+      if(!plan||!plan.fixed)throw new Error("No valid chest allocation found.");
+      const absoluteBest=plan.absolute;
+      const fixed=plan.fixed;
+      const totalAlloc=plan.total;
+      const allocatedInv=plan.finalInv;
+      const forcedMap=plan.forcedMap;
+      const immediateMap=plan.resMap;
+      const futurePlan=plan.future;
+      const futureBank=futurePlan.bank;
+      const leftovers=N-plan.resPlan.c-plan.forcedCount;
+
+      const nextBreak=findNextResonanceBreakpoint(allocatedInv,S,fixed.e,targets,512);
+      const finalState=sumFinalState(fixed.alloc);
+      const gain=fixed.e-base.e;
+
+      document.getElementById("sEnergy").textContent=fixed.e.toLocaleString();
+      document.getElementById("sEnergyGain").textContent=`${gain>=0?"+":""}${gain.toLocaleString()}`;
+      document.getElementById("sSlots").textContent=`${fixed.s} / ${S}`;
+      document.getElementById("sAllocated").textContent=`${N} / ${N}`;
+      document.getElementById("sNextBreak").textContent=nextBreak?`+${nextBreak.chests} chest${nextBreak.chests===1?"":"s"}`:">512 chests";
+      document.getElementById("sRainbows").textContent=totalRainbows(finalState).toLocaleString();
+      document.getElementById("sFutureTarget").textContent=nextBreak?routeTargetSummary(fixed,nextBreak.result):"—";
+
+      const targetPair=(document.getElementById("tbTarget").value==="AUTO"?selectedPairFromUI(allocatedInv):PAIRS.find(p=>pairKey(p)===document.getElementById("tbTarget").value))||PAIRS[0];
+      const targetFunding=twinbornGoalFunding(allocatedInv,targetPair),ownedTarget=isTwinbornOwned(targetPair);
+      document.getElementById("sTbDistance").textContent=targetFunding.total===0?(ownedTarget?"ETERNAL FUNDED":"LEGEND FUNDED"):`${ownedTarget?"Eternal":"Legend"} +${targetFunding.total}`;
+      const craftNow=ownedTarget&&targetFunding.total===0?craftComparison(allocatedInv,targetPair,S):null;
+      document.getElementById("sCraftAdvice").textContent=!ownedTarget?(targetFunding.total===0?"CRAFT LEGEND TB":"BUILD MISSING TB"):craftNow?.craftable?(craftNow.loss<=maxLoss?`CRAFT ETERNAL (${craftNow.loss>0?"−":"+"}${Math.abs(craftNow.loss)})`:`WAIT (−${craftNow.loss})`):"NOT FUNDED";
+      renderTwinbornPlanner(allocatedInv,S,maxLoss);
+
+      const fixedByPart=Object.fromEntries(fixed.alloc.map(a=>[a.p,a]));
+      const rows=PARTS.map(p=>{
+        const a=fixedByPart[p];
+        const immediate=immediateMap[p]||0;
+        const forced=forcedMap[p]||0;
+        const banked=futureBank[p]||0;
+        return {p,a,total:totalAlloc[p]||0,immediate,forced,banked};
+      }).filter(x=>x.total>0||(x.a&&x.a.k>0)).sort((a,b)=>b.total-a.total||((b.a?.energy||0)-(a.a?.energy||0))||a.p.localeCompare(b.p));
+
+      const r=document.getElementById("results");
+      r.className="result-list";
+      const nextGain=nextBreak?nextBreak.result.e-fixed.e:0;
+      const futureRoute=nextBreak?allocationSummary(nextBreak.result.alloc):"No increase found within 512 future chests";
+      const nextTarget=nextBreak?routeTargetSummary(fixed,nextBreak.result):"—";
+      const bankPlan=futurePlan.steps.length?futurePlan.steps.map(x=>{
+        if(x.label)return `${x.label}: ${x.spent}/${x.needed||x.spent} chest${x.spent===1?"":"s"}${x.route?` · ${x.route}`:""}`;
+        if(x.target)return `${x.target}: ${x.spent||0}/${x.needed||x.spent||0} chest${(x.spent||0)===1?"":"s"}${x.route?` · ${x.route}`:""}`;
+        return x.kind||"future bank";
+      }).join("<br>"):"No future-only chests needed.";
+      const header=`<div class="priority"><b>All ${N} chest${N===1?"":"s"} allocated.</b> Absolute max resonance for this chest count is <b>${absoluteBest.e.toLocaleString()}</b>. This plan finishes at <b>${fixed.e.toLocaleString()}</b>${fixed.e<absoluteBest.e?` (−${(absoluteBest.e-fixed.e).toLocaleString()} within your ${maxLoss.toLocaleString()} loss budget)`:" (no resonance sacrifice)"}. <b>${plan.forcedCount}</b> chest${plan.forcedCount===1?"":"s"} were deliberately committed toward Eternal Twinborn progression; ${leftovers} remained after the resonance solver and were future-banked.<br><br>${leftovers?`<b>Where the spare chests are being banked:</b> ${bankPlan}<br><br>`:""}${nextBreak?`<b>Next global resonance increase from your fully allocated inventory:</b> +${nextBreak.chests} future chest${nextBreak.chests===1?"":"s"} → <span class="delta">+${nextGain.toLocaleString()} energy</span>.<br><b>Target:</b> ${nextTarget}.<br><b>Route:</b> ${futureRoute}.`:`<b>Next global resonance increase:</b> not found inside the 512-chest look-ahead window.`}</div>`;
+
+      const body=rows.map(({p,a,total,immediate,forced,banked})=>{
+        const e=a?supportEnergy(a.state,a.k):0;
+        const dist=nextR0Distance(allocatedInv[p]);
+        const ready=Math.floor(lowerY0Units(allocatedInv[p])/16);
+        const chestNote=[forced?`${forced} TB-commit`:"",immediate?`${immediate} resonance`:"",banked?`${banked} future-bank`:""].filter(Boolean).join(" · ")||"placed";
+        const forcedTb=forced>0;
+        const tbTargetStep=futurePlan.steps.find(st=>st.kind==="tb"&&st.pair?.includes(p));
+        const resTargetStep=futurePlan.steps.find(st=>st.kind==="res"&&st.route&&st.route.includes(p+" +"));
+        const selectedGoalPair=targetMode==="AUTO"?selectedPairFromUI(inventory):PAIRS.find(q=>pairKey(q)===targetMode);
+        const bankTarget=forcedTb&&selectedGoalPair?.includes(p)?`${pairLabel(selectedGoalPair)} ${isTwinbornOwned(selectedGoalPair)?"Eternal":"Legend"} funding`:tbTargetStep?`${pairLabel(tbTargetStep.pair)} ${tbTargetStep.goal||"Twinborn"} funding`:resTargetStep?.label;
+        return `<div class="result"><strong>${p}</strong><div class="chests">${total?`+${total}`:"—"}</div><div class="state"><b>Use in resonance:</b> ${a?selectedText(a.state,a.k):"—"}<br><span style="color:var(--muted)"><b>Post-merge inventory:</b> ${a?stateText(a.state):"—"}</span><br><span style="color:var(--yellow)"><b>${bankTarget?"Banking toward":"Lower-tier position"}:</b> ${bankTarget||`${dist} more Epic0 → next Legend0 fuel${ready?` · ${ready} Legend0 fuel already formable`:""}`}</span></div><div class="state delta">${e.toLocaleString()} energy${total?`<br><span style="color:var(--muted);font-weight:600">${chestNote}</span>`:""}</div></div>`;
+      }).join("");
+      r.innerHTML=header+body;
+
+      status.textContent=`${Math.round(performance.now()-t0)} ms`;
+    }catch(err){
+      document.getElementById("results").className="empty";
+      document.getElementById("results").textContent=err.message||String(err);
+      status.textContent="Error";
+    }finally{
+      document.getElementById("optBtn").disabled=false;
+    }
+  },20);
+}
+
+function renderEnergy(){
+  const order=["Rainbow","R4","R3","R2","R1","R0","Y3","Y2","Y1","Y0"];
+  document.getElementById("energyGrid").innerHTML=order.map(k=>`<div class="pair"><b>${levelName(k)}</b><span class="owned">${ENERGY[k].toLocaleString()} energy</span></div>`).join("");
+}
+function renderPairs(){
+  const el=document.getElementById("pairs");
+  el.innerHTML=PAIRS.map(pair=>{const key=pairKey(pair),owned=isTwinbornOwned(pair);return `<div class="pair"><b>${pairLabel(pair)}</b><label style="display:flex;align-items:center;gap:7px;margin:6px 0 0;text-transform:none;letter-spacing:0;color:${owned?'var(--green)':'#ff7b8b'}"><input type="checkbox" data-tb-owned="${key}" ${owned?'checked':''}> ${owned?'Legend Twinborn owned':'Missing Twinborn'}</label></div>`;}).join("");
+  el.querySelectorAll('[data-tb-owned]').forEach(cb=>cb.addEventListener('change',()=>{twinbornOwned[cb.dataset.tbOwned]=cb.checked;renderPairs();renderTwinbornPlanner(inventory,Math.max(1,num(document.getElementById("slotCount").value)||18),Math.max(0,num(document.getElementById("maxLoss").value)));saveLocal();document.getElementById("status").textContent='Twinborn ownership updated';}));
+}
+function renderTargetOptions(){
+  const sel=document.getElementById("tbTarget"),cur=sel.value||"AUTO";
+  sel.innerHTML='<option value="AUTO">Auto: missing Twinborn first, then nearest Eternal</option>'+PAIRS.map(p=>`<option value="${pairKey(p)}">${pairLabel(p)}</option>`).join("");
+  sel.value=[...sel.options].some(o=>o.value===cur)?cur:"AUTO";
+}
+function saveLocal(){try{localStorage.setItem("sioResonanceOptimizerV8",JSON.stringify({inventory,twinbornOwned,targets,chests:document.getElementById("chestCount").value,slots:document.getElementById("slotCount").value,tbTarget:document.getElementById("tbTarget").value,planMode:document.getElementById("planMode").value,maxLoss:document.getElementById("maxLoss").value}));}catch(e){}}
+function loadLocal(){try{const raw=localStorage.getItem("sioResonanceOptimizerV8")||localStorage.getItem("sioResonanceOptimizerV7")||localStorage.getItem("sioResonanceOptimizerV6")||"null";const x=JSON.parse(raw);if(x&&x.inventory){inventory=normalizeInventory(x.inventory);targets={...targets,...(x.targets||{})};twinbornOwned={...defaultTwinbornOwned(),...(x.twinbornOwned||{})};document.getElementById("chestCount").value=x.chests||0;document.getElementById("slotCount").value=x.slots||18;document.getElementById("tbTarget").value=x.tbTarget||"AUTO";document.getElementById("planMode").value=x.planMode||"BAL";document.getElementById("maxLoss").value=x.maxLoss||0;}}catch(e){}}
+function refreshPanels(msg){renderTable();renderPairs();renderTwinbornPlanner(inventory,Math.max(1,num(document.getElementById("slotCount").value)||18),Math.max(0,num(document.getElementById("maxLoss").value)));if(msg)document.getElementById("status").textContent=msg;}
+function loadScreenshotPreset(){inventory=screenshotPreset();targets=Object.fromEntries(PARTS.map(p=>[p,true]));twinbornOwned=defaultTwinbornOwned();refreshPanels('Original screenshot preset loaded ✓');saveLocal();document.getElementById("results").className='empty';document.getElementById("results").innerHTML='Original screenshot inventory restored. Enter your chest count and press <b>Optimize all chests</b>.';}
+
+document.getElementById("optBtn").addEventListener("click",runOptimize);
+document.getElementById("presetBtn").addEventListener("click",loadScreenshotPreset);
+document.getElementById("clearBtn").addEventListener("click",()=>{readTable();inventory=blankInv();targets=Object.fromEntries(PARTS.map(p=>[p,true]));refreshPanels('Inventory cleared — Twinborn ownership preserved ✓');saveLocal();document.getElementById("results").className='empty';document.getElementById("results").innerHTML='Normal inventory cleared. Your Twinborn ownership was kept.';});
+document.getElementById("chestCount").addEventListener("change",saveLocal);
+document.getElementById("slotCount").addEventListener("change",()=>{saveLocal();renderTwinbornPlanner(inventory,Math.max(1,num(document.getElementById("slotCount").value)||18),Math.max(0,num(document.getElementById("maxLoss").value)));});
+document.getElementById("tbTarget").addEventListener("change",saveLocal);
+document.getElementById("planMode").addEventListener("change",saveLocal);
+document.getElementById("maxLoss").addEventListener("change",()=>{saveLocal();renderTwinbornPlanner(inventory,Math.max(1,num(document.getElementById("slotCount").value)||18),Math.max(0,num(document.getElementById("maxLoss").value)));});
+renderTargetOptions();loadLocal();renderTable();renderEnergy();renderPairs();renderTwinbornPlanner(inventory,Math.max(1,num(document.getElementById("slotCount").value)||18),Math.max(0,num(document.getElementById("maxLoss").value)));
+</script>
+</body>
+</html>

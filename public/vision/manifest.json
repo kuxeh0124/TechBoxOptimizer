@@ -1,0 +1,171 @@
+{
+  "tech": {
+    "Rocket": [
+      "./vision/tech/Rocket_Legend_cal.png",
+      "./vision/tech/Rocket_Epic_cal.png",
+      "./vision/tech/Rocket_Purple_cal.png"
+    ],
+    "Drill": [
+      "./vision/tech/Drill_Legend_cal.png",
+      "./vision/tech/Drill_Epic_cal.png",
+      "./vision/tech/Drill_Purple_cal.png"
+    ],
+    "Soccer": [
+      "./vision/tech/Soccer_Legend_cal.png",
+      "./vision/tech/Soccer_Epic_cal.png",
+      "./vision/tech/Soccer_Purple_cal.png"
+    ],
+    "Durian": [
+      "./vision/tech/Durian_Legend_cal.png",
+      "./vision/tech/Durian_Epic_cal.png",
+      "./vision/tech/Durian_Purple_cal.png"
+    ],
+    "Lightning": [
+      "./vision/tech/Lightning_Legend_cal.png",
+      "./vision/tech/Lightning_Epic_cal.png",
+      "./vision/tech/Lightning_Purple_cal.png"
+    ],
+    "Boomerang": [
+      "./vision/tech/Boomerang_Legend_cal.png",
+      "./vision/tech/Boomerang_Epic_cal.png",
+      "./vision/tech/Boomerang_Purple_cal.png"
+    ],
+    "Drone": [
+      "./vision/tech/Drone_Legend_cal.png",
+      "./vision/tech/Drone_Epic_cal.png",
+      "./vision/tech/Drone_Purple_cal.png"
+    ],
+    "Forcefield": [
+      "./vision/tech/Forcefield_Legend_cal.png",
+      "./vision/tech/Forcefield_Epic_cal.png",
+      "./vision/tech/Forcefield_Purple_cal.png"
+    ],
+    "Laser": [
+      "./vision/tech/Laser_Legend_cal.png",
+      "./vision/tech/Laser_Epic_cal.png",
+      "./vision/tech/Laser_Purple_cal.png"
+    ],
+    "Shield": [
+      "./vision/tech/Shield_Legend_cal.png",
+      "./vision/tech/Shield_Epic_cal.png",
+      "./vision/tech/Shield_Purple_cal.png"
+    ],
+    "Molotov": [
+      "./vision/tech/Molotov_Legend_cal.png",
+      "./vision/tech/Molotov_Epic_cal.png",
+      "./vision/tech/Molotov_Purple_cal.png"
+    ],
+    "Brick": [
+      "./vision/tech/Brick_Legend_cal.png",
+      "./vision/tech/Brick_Epic_cal.png"
+    ]
+  },
+  "twinborn": {
+    "Rocket|Drill": [
+      "./vision/twinborn/Rocket__Drill_cal.png"
+    ],
+    "Soccer|Durian": [
+      "./vision/twinborn/Soccer__Durian_cal.png"
+    ],
+    "Lightning|Boomerang": [
+      "./vision/twinborn/Lightning__Boomerang_cal.png"
+    ],
+    "Drone|Forcefield": [
+      "./vision/twinborn/Drone__Forcefield_cal.png"
+    ],
+    "Laser|Shield": [
+      "./vision/twinborn/Laser__Shield_cal.png"
+    ],
+    "Molotov|Brick": [
+      "./vision/twinborn/Molotov__Brick_cal.png"
+    ]
+  },
+  "levels": {
+    "Purple": {
+      "0": [
+        "./vision/levels/Purple/0_cal_0.png",
+        "./vision/levels/Purple/0_cal_1.png",
+        "./vision/levels/Purple/0_cal_2.png",
+        "./vision/levels/Purple/0_cal_3.png",
+        "./vision/levels/Purple/0_cal_4.png"
+      ],
+      "1": [
+        "./vision/levels/Purple/1_cal_0.png",
+        "./vision/levels/Purple/1_cal_1.png",
+        "./vision/levels/Purple/1_cal_2.png",
+        "./vision/levels/Purple/1_cal_3.png",
+        "./vision/levels/Purple/1_cal_4.png",
+        "./vision/levels/Purple/1_cal_5.png",
+        "./vision/levels/Purple/1_cal_6.png",
+        "./vision/levels/Purple/1_cal_7.png",
+        "./vision/levels/Purple/1_cal_8.png",
+        "./vision/levels/Purple/1_cal_9.png",
+        "./vision/levels/Purple/1_cal_10.png"
+      ],
+      "2": [
+        "./vision/levels/Purple/2_cal_0.png",
+        "./vision/levels/Purple/2_cal_1.png",
+        "./vision/levels/Purple/2_cal_2.png",
+        "./vision/levels/Purple/2_cal_3.png",
+        "./vision/levels/Purple/2_cal_4.png"
+      ]
+    },
+    "Epic": {
+      "0": [
+        "./vision/levels/Epic/0_cal_0.png",
+        "./vision/levels/Epic/0_cal_1.png",
+        "./vision/levels/Epic/0_cal_2.png",
+        "./vision/levels/Epic/0_cal_3.png"
+      ],
+      "1": [
+        "./vision/levels/Epic/1_cal_0.png",
+        "./vision/levels/Epic/1_cal_1.png",
+        "./vision/levels/Epic/1_cal_2.png",
+        "./vision/levels/Epic/1_cal_3.png",
+        "./vision/levels/Epic/1_cal_4.png",
+        "./vision/levels/Epic/1_cal_5.png",
+        "./vision/levels/Epic/1_cal_6.png"
+      ],
+      "2": [
+        "./vision/levels/Epic/2_cal_0.png",
+        "./vision/levels/Epic/2_cal_1.png",
+        "./vision/levels/Epic/2_cal_2.png",
+        "./vision/levels/Epic/2_cal_3.png",
+        "./vision/levels/Epic/2_cal_4.png",
+        "./vision/levels/Epic/2_cal_5.png"
+      ],
+      "3": [
+        "./vision/levels/Epic/3_cal_0.png",
+        "./vision/levels/Epic/3_cal_1.png",
+        "./vision/levels/Epic/3_cal_2.png"
+      ]
+    },
+    "Legend": {
+      "0": [
+        "./vision/levels/Legend/0_cal_0.png"
+      ],
+      "1": [
+        "./vision/levels/Legend/1.png"
+      ],
+      "2": [
+        "./vision/levels/Legend/2.png"
+      ],
+      "3": [
+        "./vision/levels/Legend/3_cal_0.png",
+        "./vision/levels/Legend/3_cal_1.png",
+        "./vision/levels/Legend/3_cal_2.png",
+        "./vision/levels/Legend/3_cal_3.png",
+        "./vision/levels/Legend/3_cal_4.png",
+        "./vision/levels/Legend/3_cal_5.png"
+      ],
+      "4": [
+        "./vision/levels/Legend/4_cal_0.png",
+        "./vision/levels/Legend/4_cal_1.png",
+        "./vision/levels/Legend/4_cal_2.png",
+        "./vision/levels/Legend/4_cal_3.png",
+        "./vision/levels/Legend/4_cal_4.png",
+        "./vision/levels/Legend/4_cal_5.png"
+      ]
+    }
+  }
+}

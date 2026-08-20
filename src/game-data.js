@@ -4,7 +4,7 @@ export const PARTS = [
 ];
 
 // Internal field names are kept compatible with the original optimizer engine.
-// UI terminology: Y = Epic, R = Legend, Rainbow = Eternal.
+// UI terminology: P = Excellent, Y = Epic, R = Legend, Rainbow = Eternal.
 export const FIELDS = ['P0','P1','P2','Y0','Y1','Y2','Y3','R0','R1','R2','R3','R4','Rainbow'];
 export const ENERGY = {Y0:50,Y1:100,Y2:150,Y3:200,R0:300,R1:400,R2:550,R3:700,R4:850,Rainbow:1000};
 export const TIE_LEVELS = ['Rainbow','R4','R3','R2','R1','R0','Y3','Y2','Y1','Y0','P2','P1','P0'];
@@ -36,7 +36,7 @@ export function levelName(level){
   if(level === 'Rainbow') return 'Eternal';
   if(level.startsWith('R')) return `Legend ${level.slice(1)}`;
   if(level.startsWith('Y')) return `Epic ${level.slice(1)}`;
-  if(level.startsWith('P')) return `Purple ${level.slice(1)}`;
+  if(level.startsWith('P')) return `Excellent ${level.slice(1)}`;
   return level;
 }
 
@@ -85,6 +85,20 @@ export function screenshotPreset(){
   for(const p of ['Forcefield','Drill','Drone','Laser']) v[p].P2++;
   for(const p of ['Rocket','Forcefield','Shield','Boomerang','Durian','Drill','Lightning','Soccer','Drone','Laser','Molotov']) v[p].P1++;
   for(const p of ['Forcefield','Drill','Soccer','Drone','Laser']) v[p].P0++;
+  return v;
+}
+
+export function latestScreenshotPreset(){
+  const v = blankInventory();
+  for(const p of ['Drone','Rocket','Forcefield','Shield','Drill','Lightning','Laser']) v[p].R4++;
+  v.Drone.R0 += 2;
+  for(const p of ['Brick','Boomerang','Durian','Soccer','Molotov']) v[p].R3++;
+  for(const p of ['Forcefield','Durian','Drill','Soccer']) v[p].Y3++;
+  v.Molotov.Y2++;
+  for(const p of ['Rocket','Brick','Boomerang','Lightning']) v[p].Y1++;
+  for(const p of ['Drill','Lightning','Laser']) v[p].Y0++;
+  for(const p of ['Rocket','Forcefield','Drill','Drone','Laser']) v[p].P2++;
+  for(const p of ['Rocket','Forcefield','Shield']) v[p].P1++;
   return v;
 }
 

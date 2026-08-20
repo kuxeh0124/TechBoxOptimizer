@@ -1,4 +1,4 @@
-# Survivor.io Tech Resonance Optimizer — Copilot Instructions
+# Tech Part Choice Chest Allocation Optimzer — Copilot Instructions
 
 You are working on a browser-based Survivor.io Tech Part optimizer. Treat the rules below as the source of truth unless the user explicitly changes them. Do not silently reinterpret merge rules, resonance values, Twinborn pairings, or optimization priorities.
 
@@ -15,7 +15,7 @@ Use these user-facing terms everywhere:
 - Yellow = **Epic**
 - Red = **Legend**
 - Rainbow = **Eternal**
-- Purple remains **Purple**
+- Purple = **Excellent**
 - “Reso” means resonance.
 
 Internal legacy field names may remain for compatibility:
@@ -62,9 +62,9 @@ If a Twinborn is missing, Auto mode should prioritize building the missing **Leg
 
 These are exact and one-way. Ingredients are consumed.
 
-- Purple Lv0 + Purple Lv0 -> Purple Lv1
-- Purple Lv1 + Purple Lv1 -> Purple Lv2
-- Purple Lv2 + Purple Lv2 -> Epic Lv0
+- Excellent Lv0 + Excellent Lv0 -> Excellent Lv1
+- Excellent Lv1 + Excellent Lv1 -> Excellent Lv2
+- Excellent Lv2 + Excellent Lv2 -> Epic Lv0
 - Epic Lv0 + Epic Lv0 -> Epic Lv1
 - Epic Lv1 + Epic Lv1 -> Epic Lv2
 - Epic Lv2 + Epic Lv2 -> Epic Lv3
@@ -92,7 +92,7 @@ Only these tiers contribute resonance energy:
 - Legend Lv4 = 850
 - Eternal = 1000
 
-Purple contributes zero resonance directly but can merge upward.
+Excellent contributes zero resonance directly but can merge upward.
 
 Important: merging can reduce the raw sum of resonance energy because ingredients are consumed. Example: 2 x Legend Lv0 = 600 raw energy, while the resulting Legend Lv1 is 400. A merge can still be beneficial because it compresses energy into fewer resonance slots and frees slots for other pieces.
 
@@ -152,7 +152,8 @@ Requirements:
 - Accept **multiple screenshots** in one import.
 - Treat screenshots as additive pieces of one inventory capture.
 - Detect the five-column inventory grid.
-- Detect Purple, Epic, and Legend rarity from card colors.
+- Use hierarchical recognition in this order: occupied card, Twinborn marker, pair or normal-tech identity, upgrade level, then rarity.
+- Detect Excellent (purple), Epic (yellow), Legend (red), and Eternal (rainbow) rarity from card colors as the final classification stage when calibrated examples are available.
 - Detect the 12 tech types using the small circular tech badge at the upper-right of each card.
 - Detect upgrade level using the bottom level badge.
 - Detect the six known Legend Twinborn artworks.
@@ -163,7 +164,7 @@ Requirements:
 - Applying reviewed results should immediately update inventory and rerun optimization.
 - Do not deduplicate identical-looking cards across screenshots automatically. Two identical cards can be legitimate separate inventory pieces. The user should avoid overlapping screenshots or manually ignore duplicated rows.
 
-Current calibration assets are under `public/vision/` and were derived from the user's supplied game screenshots. The current recognizer is calibrated for Purple/Epic/Legend and the six current Legend Twinborns. Eternal card screenshot recognition is not yet calibrated; manual review must remain available.
+Current calibration assets are under `public/vision/` and were derived from the user's supplied game screenshots and clean card references. The current recognizer is calibrated for Excellent/Epic/Legend and the six current Legend Twinborns. Eternal card screenshot recognition is not yet calibrated; manual review must remain available.
 
 Keep image recognition modular under `src/vision.js` or a future `src/vision/` directory. Do not entangle screenshot parsing with optimizer rules.
 
@@ -194,9 +195,9 @@ The original screenshot preset contains:
 - Epic Lv2: Forcefield, Shield, Durian, Soccer, Drone, Molotov
 - Epic Lv1: Rocket, Brick, Boomerang, Durian, Lightning, Soccer, Forcefield
 - Epic Lv0: Drill, Lightning, Drone, Laser
-- Purple Lv2: Rocket, Forcefield, Drill, Drone, Laser
-- Purple Lv1: Rocket, Forcefield, Shield, Boomerang, Durian, Drill, Lightning, Soccer, Drone, Laser, Molotov
-- Purple Lv0: Forcefield, Drill, Soccer, Drone, Laser
+- Excellent Lv2: Rocket, Forcefield, Drill, Drone, Laser
+- Excellent Lv1: Rocket, Forcefield, Shield, Boomerang, Durian, Drill, Lightning, Soccer, Drone, Laser, Molotov
+- Excellent Lv0: Forcefield, Drill, Soccer, Drone, Laser
 - All six Legend Twinborns owned
 
 With 18 resonance slots and zero Epic selector chests, the current regression baseline is **10,500 resonance**.

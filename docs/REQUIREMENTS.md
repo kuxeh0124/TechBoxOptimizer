@@ -4,16 +4,16 @@ This file is the human-readable source of truth for the optimizer. Keep it synch
 
 ## Terminology
 
-- Purple = Purple
+- Purple = Excellent
 - Yellow = Epic
 - Red = Legend
 - Rainbow = Eternal
 
 ## Merge chain
 
-1. Purple 0 + Purple 0 -> Purple 1
-2. Purple 1 + Purple 1 -> Purple 2
-3. Purple 2 + Purple 2 -> Epic 0
+1. Excellent 0 + Excellent 0 -> Excellent 1
+2. Excellent 1 + Excellent 1 -> Excellent 2
+3. Excellent 2 + Excellent 2 -> Epic 0
 4. Epic 0 + Epic 0 -> Epic 1
 5. Epic 1 + Epic 1 -> Epic 2
 6. Epic 2 + Epic 2 -> Epic 3
@@ -41,7 +41,17 @@ All ingredients are consumed.
 | Legend 4 | 850 |
 | Eternal | 1000 |
 
-Purple = 0 direct resonance.
+Excellent = 0 direct resonance.
+
+## Screenshot recognition
+
+- Card color maps to rarity: purple = Excellent, yellow = Epic, red = Legend, rainbow = Eternal.
+- The number in the bottom badge is the upgrade level.
+- A blank bottom badge means level 0.
+- Recognition is hierarchical: detect the Twinborn marker first, identify the pair or normal tech, detect level, and classify rarity last.
+- A mistaken preliminary color signal must never prevent Twinborn detection.
+- Use local OpenCV.js card-body alignment before template comparison, with the percentage result retained when alignment is unreliable or changes an otherwise confident complete label.
+- Reference cards under `image_references/` are additional comparison samples; screenshot-derived samples remain available for equipped-card overlays and crop variation.
 
 ## Optimizer objective
 

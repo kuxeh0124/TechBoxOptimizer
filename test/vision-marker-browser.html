@@ -1,0 +1,26 @@
+<!doctype html><meta charset="utf-8"><base href="../"><pre id="out">loading marker test</pre>
+<script type="module">
+import { parseScreenshotFile } from '../src/vision.js';
+
+const out=document.querySelector('#out');
+const pairs=['Rocket|Drill','Soccer|Durian','Lightning|Boomerang','Drone|Forcefield','Laser|Shield','Molotov|Brick'];
+
+try{
+  out.textContent='parsing Legend marker fixture';
+  const blob=await fetch('./test/fixtures/inventory_legend.png').then(r=>r.blob());
+  const parsed=await parseScreenshotFile(new File([blob],'inventory_legend.png',{type:'image/png'}));
+  const errors=[];
+  parsed.cards.forEach((card,index)=>{
+    const expectedKind=index<6?'twinborn':'part';
+    if(card.kind!==expectedKind)errors.push(`cell ${card.row+1},${card.col+1}: expected ${expectedKind}, got ${card.kind}`);
+    if(index<6&&card.pairKey!==pairs[index])errors.push(`cell ${card.row+1},${card.col+1}: expected ${pairs[index]}, got ${card.pairKey}`);
+  });
+  if(parsed.cards.length!==20)errors.push(`expected 20 cards, got ${parsed.cards.length}`);
+  const markerResults=parsed.cards.map(card=>({cell:`${card.row+1},${card.col+1}`,kind:card.kind,marker:card.scores?.marker?.name,confidence:card.scores?.marker?.confidence}));
+  out.textContent=(errors.length?'FAIL':'PASS')+'\n'+JSON.stringify({grid:parsed.grid.source,errors,markerResults},null,2);
+  document.body.dataset.status=errors.length?'fail':'pass';
+}catch(error){
+  out.textContent='ERROR\n'+error.stack;
+  document.body.dataset.status='error';
+}
+</script>

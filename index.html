@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Survivor.io Tech Resonance Optimizer</title>
+  <title>Tech Part Choice Chest Allocation Optimzer</title>
   <link rel="stylesheet" href="./src/styles.css" />
 </head>
 <body>
   <main class="wrap">
     <header class="hero">
       <div>
-        <h1>Survivor.io Tech Resonance Optimizer</h1>
+        <h1>Tech Part Choice Chest Allocation Optimzer</h1>
         <p>Resonance-first Epic chest allocation, Legend/Eternal merge planning, Twinborn progression, and multi-screenshot inventory import.</p>
       </div>
       <div class="badge">GitHub-ready project</div>
@@ -30,6 +30,7 @@
           <div class="button-row">
             <button class="primary" id="optimizeBtn">Optimize all chests</button>
             <button id="presetBtn">Load original screenshot preset</button>
+            <button id="latestPresetBtn">Load latest screenshot list</button>
             <button class="danger" id="clearBtn">Clear normal inventory</button>
           </div>
           <p class="hint">Primary objective is maximum resonance. Balanced mode then spends only the allowed resonance-loss budget to improve the selected/nearest Twinborn path. Every Epic chest is allocated somewhere, including future banking when it does not improve resonance immediately.</p>
@@ -54,7 +55,7 @@
           <div id="visionStatus" class="status-line"></div>
           <div id="screenshotPreview" class="preview-grid"></div>
           <div id="reviewPanel"></div>
-          <p class="hint">The recognizer is calibrated from your three supplied screenshots. Purple, Epic, Legend, all 12 tech types, and the six current Legend Twinborns are supported. New UI themes, unusual crops, and future Eternal card artwork should be reviewed manually until more calibration examples are added.</p>
+          <p class="hint">The recognizer compares your screenshots with clean reference cards and screenshot-derived examples. Excellent, Epic, Legend, all 12 tech types, and the six current Legend Twinborns are supported. A blank bottom badge means Lv0. Twinborns are detected from their upper-left emblem, then identified from the card artwork. Eternal cards and unusual crops should be reviewed manually until a real Eternal reference is added.</p>
         </section>
       </div>
 

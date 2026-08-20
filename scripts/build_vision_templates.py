@@ -5,6 +5,31 @@ import json
 ROOT = Path(__file__).resolve().parents[1]
 FIX = ROOT / 'test' / 'fixtures'
 OUT = ROOT / 'public' / 'vision'
+REF = ROOT / 'image_references'
+
+REFERENCE_PARTS = {
+    'Rocket': ('Rocket Tech Part.png', 4),
+    'Drill': ('Drill Tech Part.png', 4),
+    'Soccer': ('Soccer Tech part.png', 3),
+    'Durian': ('Durian Tech Part.png', 3),
+    'Lightning': ('Lightning Tech Part.png', 4),
+    'Boomerang': ('Boomerang Tech Part.png', 3),
+    'Drone': ('Drone Tech Part.png', 4),
+    'Forcefield': ('Forcefield Tech Part.png', 4),
+    'Laser': ('Laser Tech Part.png', 4),
+    'Shield': ('Shield Tech Part.png', 4),
+    'Molotov': ('Molotov Tech Part.png', 3),
+    'Brick': ('Brick Tech Part.png', 3),
+}
+
+REFERENCE_TWINBORNS = {
+    'Rocket|Drill': 'Twinborn Rocket.png',
+    'Soccer|Durian': 'Twinborn Soccer.png',
+    'Lightning|Boomerang': 'Twinborn Lightning.png',
+    'Drone|Forcefield': 'Twinborn Drone.png',
+    'Laser|Shield': 'Twinborn Laser.png',
+    'Molotov|Brick': 'Twinborn Molotov.png',
+}
 
 FIXTURES = {
     'Legend': {
@@ -94,6 +119,11 @@ def tech_crop(im, geom):
     return crop_norm(im, x+w*.75, y+h*.07, w*.30, h*.30, (32,32))
 
 
+def marker_crop(im, geom):
+    x,y,w,h = geom
+    return crop_norm(im, x, y, w*.30, h*.30, (32,32))
+
+
 def level_crop(im, geom):
     x,y,w,h = geom
     return crop_norm(im, x+w*.36, y+h*.75, w*.28, h*.28, (40,40))
@@ -102,6 +132,24 @@ def level_crop(im, geom):
 def twinborn_crop(im, geom):
     x,y,w,h = geom
     return crop_norm(im, x+w*.18, y+h*.20, w*.64, h*.66, (64,66))
+
+
+def art_crop(im, geom):
+    x,y,w,h = geom
+    return crop_norm(im, x+w*.16, y+h*.18, w*.68, h*.56, (48,48))
+
+
+def reference_crop(im, kind):
+    w,h = im.size
+    boxes = {
+        'marker': (0, h*.15, w*.30, h*.32, (32,32)),
+        'tech': (w*.70, h*.15, w*.30, h*.32, (32,32)),
+        'art': (w*.14, h*.18, w*.72, h*.60, (48,48)),
+        'level': (w*.34, h*.70, w*.32, h*.30, (40,40)),
+        'twinborn': (w*.14, h*.18, w*.72, h*.72, (64,66)),
+    }
+    x,y,cw,ch,size = boxes[kind]
+    return crop_norm(im, x, y, cw, ch, size)
 
 
 def save_unique(path, image):
@@ -115,7 +163,9 @@ old_manifest_path = OUT / 'manifest.json'
 old_manifest = json.loads(old_manifest_path.read_text()) if old_manifest_path.exists() else {}
 
 tech_samples = {name: [] for name in ['Rocket','Drill','Soccer','Durian','Lightning','Boomerang','Drone','Forcefield','Laser','Shield','Molotov','Brick']}
+art_samples = {name: [] for name in tech_samples}
 tb_samples = {}
+marker_samples = {'Twinborn': [], 'Part': []}
 level_samples = {r: {str(l): [] for l in levels} for r,levels in {'Purple':[0,1,2], 'Epic':[0,1,2,3], 'Legend':[0,1,2,3,4]}.items()}
 
 # Prefer one tech-badge sample per rarity for each tech, plus all available level samples up to 6.
@@ -129,17 +179,44 @@ for fixture_name, fx in FIXTURES.items():
             key = ident
             out = OUT / 'twinborn' / f"{key.replace('|','__')}_cal.png"
             tb_samples[key] = [save_unique(out, twinborn_crop(im,geom))]
+            marker_out = OUT / 'markers' / f"Twinborn_cal_{len(marker_samples['Twinborn'])}.png"
+            marker_samples['Twinborn'].append(save_unique(marker_out, marker_crop(im,geom)))
             continue
         tech = ident
+        if rarity == 'Legend':
+            marker_out = OUT / 'markers' / f"Part_cal_{len(marker_samples['Part'])}.png"
+            marker_samples['Part'].append(save_unique(marker_out, marker_crop(im,geom)))
         sig = (tech,rarity)
         if sig not in seen_tech_rarity:
             seen_tech_rarity.add(sig)
             out = OUT / 'tech' / f'{tech}_{rarity}_cal.png'
             tech_samples[tech].append(save_unique(out, tech_crop(im,geom)))
+            art_out = OUT / 'art' / f'{tech}_{rarity}_cal.png'
+            art_samples[tech].append(save_unique(art_out, art_crop(im,geom)))
         # Capture several real level samples per rarity/level.
         if rarity in level_samples and str(level) in level_samples[rarity] and len(level_samples[rarity][str(level)]) < 12:
             out = OUT / 'levels' / rarity / f'{level}_cal_{len(level_samples[rarity][str(level)])}.png'
             level_samples[rarity][str(level)].append(save_unique(out, level_crop(im,geom)))
+
+# Add clean card references as extra samples. Screenshot-derived samples remain
+# in the same classes because they cover equipped overlays and grid crop drift.
+for tech, (filename, level) in REFERENCE_PARTS.items():
+    path = REF / filename
+    if not path.exists():
+        continue
+    im = Image.open(path).convert('RGB')
+    tech_samples[tech].append(save_unique(OUT / 'tech' / f'{tech}_reference.png', reference_crop(im, 'tech')))
+    art_samples[tech].append(save_unique(OUT / 'art' / f'{tech}_reference.png', reference_crop(im, 'art')))
+    marker_samples['Part'].append(save_unique(OUT / 'markers' / f"Part_reference_{tech}.png", reference_crop(im, 'marker')))
+    level_samples['Legend'][str(level)].append(save_unique(OUT / 'levels' / 'Legend' / f'{level}_reference_{tech}.png', reference_crop(im, 'level')))
+
+for key, filename in REFERENCE_TWINBORNS.items():
+    path = REF / filename
+    if not path.exists():
+        continue
+    im = Image.open(path).convert('RGB')
+    tb_samples.setdefault(key, []).append(save_unique(OUT / 'twinborn' / f"{key.replace('|','__')}_reference.png", reference_crop(im, 'twinborn')))
+    marker_samples['Twinborn'].append(save_unique(OUT / 'markers' / f"Twinborn_reference_{key.split('|')[0]}.png", reference_crop(im, 'marker')))
 
 # Carry forward synthetic/legacy Legend 1 and 2 because calibration screenshots did not contain them.
 for lv in ('1','2'):
@@ -149,10 +226,10 @@ for lv in ('1','2'):
         if p not in level_samples['Legend'][lv]:
             level_samples['Legend'][lv].append(p)
 
-manifest = {'tech': tech_samples, 'twinborn': tb_samples, 'levels': level_samples}
+manifest = {'tech': tech_samples, 'art': art_samples, 'twinborn': tb_samples, 'markers': marker_samples, 'levels': level_samples}
 old_manifest_path.write_text(json.dumps(manifest, indent=2) + '\n')
 print(f'Wrote {old_manifest_path}')
 for tech, paths in tech_samples.items():
-    print(f'{tech}: {len(paths)} tech samples')
+    print(f'{tech}: {len(paths)} badge samples, {len(art_samples[tech])} art samples')
 for r, by in level_samples.items():
     print(r, {lv:len(paths) for lv,paths in by.items()})

@@ -1,8 +1,8 @@
-# Survivor.io Tech Resonance + Twinborn Optimizer
+# Tech Part Choice Chest Allocation Optimzer
 
 A GitHub/VS Code friendly rewrite of the single-file optimizer, with:
 
-- exact Purple -> Epic -> Legend -> Eternal merge rules
+- exact Excellent -> Epic -> Legend -> Eternal merge rules
 - resonance-slot optimization
 - exact Epic Lv0 selector chest allocation
 - future-aware chest banking
@@ -63,7 +63,7 @@ Avoid overlapping screenshots where the same physical inventory cards appear twi
 The current local recognizer is calibrated from the screenshots used while designing this project:
 
 - all 12 tech types
-- Purple levels 0-2
+- Excellent levels 0-2
 - Epic levels 0-3
 - Legend levels 0-4 (Legend 1/2 use synthetic color-calibrated level samples until real screenshots are supplied)
 - all six current Legend Twinborn artworks

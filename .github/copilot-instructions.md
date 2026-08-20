@@ -15,16 +15,17 @@ Use these user-facing terms everywhere:
 - Yellow = **Epic**
 - Red = **Legend**
 - Rainbow = **Eternal**
-- Purple remains **Purple**
+- Purple = **Excellent**
 - “Reso” means resonance.
 
 Internal legacy field names may remain for compatibility:
 
 - `Y0..Y3` = Epic Lv0..Lv3
 - `R0..R4` = Legend Lv0..Lv4
+- `P0..P2` = Excellent Lv0..Lv2
 - `Rainbow` = Eternal
 
-Do not expose “Yellow”, “Red”, or “Rainbow” in new UI copy unless explaining legacy internal code.
+Do not expose “Yellow”, “Red”, “Purple”, or “Rainbow” in new UI copy unless explaining screenshot colors or legacy internal code.
 
 ## Tech parts
 
@@ -62,9 +63,9 @@ If a Twinborn is missing, Auto mode should prioritize building the missing **Leg
 
 These are exact and one-way. Ingredients are consumed.
 
-- Purple Lv0 + Purple Lv0 -> Purple Lv1
-- Purple Lv1 + Purple Lv1 -> Purple Lv2
-- Purple Lv2 + Purple Lv2 -> Epic Lv0
+- Excellent Lv0 + Excellent Lv0 -> Excellent Lv1
+- Excellent Lv1 + Excellent Lv1 -> Excellent Lv2
+- Excellent Lv2 + Excellent Lv2 -> Epic Lv0
 - Epic Lv0 + Epic Lv0 -> Epic Lv1
 - Epic Lv1 + Epic Lv1 -> Epic Lv2
 - Epic Lv2 + Epic Lv2 -> Epic Lv3
@@ -92,7 +93,7 @@ Only these tiers contribute resonance energy:
 - Legend Lv4 = 850
 - Eternal = 1000
 
-Purple contributes zero resonance directly but can merge upward.
+Excellent contributes zero resonance directly but can merge upward.
 
 Important: merging can reduce the raw sum of resonance energy because ingredients are consumed. Example: 2 x Legend Lv0 = 600 raw energy, while the resulting Legend Lv1 is 400. A merge can still be beneficial because it compresses energy into fewer resonance slots and frees slots for other pieces.
 
@@ -152,10 +153,14 @@ Requirements:
 - Accept **multiple screenshots** in one import.
 - Treat screenshots as additive pieces of one inventory capture.
 - Detect the five-column inventory grid.
-- Detect Purple, Epic, and Legend rarity from card colors.
+- Use hierarchical recognition in this order: occupied card, Twinborn marker, pair or normal-tech identity, upgrade level, then rarity.
+- Detect Excellent (purple), Epic (yellow), Legend (red), and Eternal (rainbow) rarity from card colors as the final classification stage when calibrated examples are available.
 - Detect the 12 tech types using the small circular tech badge at the upper-right of each card.
 - Detect upgrade level using the bottom level badge.
-- Detect the six known Legend Twinborn artworks.
+- Treat a blank bottom level badge as Lv0.
+- A preliminary color signal must not gate or suppress Twinborn detection.
+- Distinguish Legend Twinborns from normal cards using the red Twinborn emblem at the upper-left.
+- After the Twinborn marker is detected, identify the pair using the six known Legend Twinborn artworks.
 - Twinborn cards must update Twinborn ownership and must **not** be counted as normal component parts.
 - Show confidence and a manual review table after auto-recognition.
 - Low-confidence recognition should never silently disappear; import the best guess but highlight it for correction.
@@ -163,7 +168,7 @@ Requirements:
 - Applying reviewed results should immediately update inventory and rerun optimization.
 - Do not deduplicate identical-looking cards across screenshots automatically. Two identical cards can be legitimate separate inventory pieces. The user should avoid overlapping screenshots or manually ignore duplicated rows.
 
-Current calibration assets are under `public/vision/` and were derived from the user's supplied game screenshots. The current recognizer is calibrated for Purple/Epic/Legend and the six current Legend Twinborns. Eternal card screenshot recognition is not yet calibrated; manual review must remain available.
+Current calibration assets are under `public/vision/` and were derived from the user's supplied game screenshots and the clean card crops under `image_references/`. The current recognizer is calibrated for Excellent/Epic/Legend and the six current Legend Twinborns. Eternal card screenshot recognition is not yet calibrated from a real card; manual review must remain available.
 
 Keep image recognition modular under `src/vision.js` or a future `src/vision/` directory. Do not entangle screenshot parsing with optimizer rules.
 
@@ -174,10 +179,13 @@ Current important files:
 - `src/game-data.js` — constants, terminology mappings, inventory helpers, preset data.
 - `src/optimizer.js` — merge-state solver, resonance optimization, future banking, Twinborn planning.
 - `src/vision.js` — screenshot grid detection and template matching.
+- `src/opencv.js` — lazy OpenCV.js loading and card-body alignment.
 - `src/app.js` — UI state, rendering, persistence, screenshot workflow.
 - `public/vision/manifest.json` — recognition template manifest.
 - `public/vision/tech/` — tech badge templates.
 - `public/vision/twinborn/` — Twinborn artwork templates.
+- `public/vision/markers/` — upper-left Twinborn and normal-part marker templates.
+- `image_references/` — clean user-supplied normal-part and Twinborn reference cards used to generate additional templates.
 - `public/vision/levels/` — rarity/level badge templates.
 - `test/optimizer.test.js` — domain regression tests.
 
@@ -194,9 +202,9 @@ The original screenshot preset contains:
 - Epic Lv2: Forcefield, Shield, Durian, Soccer, Drone, Molotov
 - Epic Lv1: Rocket, Brick, Boomerang, Durian, Lightning, Soccer, Forcefield
 - Epic Lv0: Drill, Lightning, Drone, Laser
-- Purple Lv2: Rocket, Forcefield, Drill, Drone, Laser
-- Purple Lv1: Rocket, Forcefield, Shield, Boomerang, Durian, Drill, Lightning, Soccer, Drone, Laser, Molotov
-- Purple Lv0: Forcefield, Drill, Soccer, Drone, Laser
+- Excellent Lv2: Rocket, Forcefield, Drill, Drone, Laser
+- Excellent Lv1: Rocket, Forcefield, Shield, Boomerang, Durian, Drill, Lightning, Soccer, Drone, Laser, Molotov
+- Excellent Lv0: Forcefield, Drill, Soccer, Drone, Laser
 - All six Legend Twinborns owned
 
 With 18 resonance slots and zero Epic selector chests, the current regression baseline is **10,500 resonance**.
@@ -218,6 +226,7 @@ Treat these as regression checks unless the game rules or starting preset are de
 - Preserve manual inventory editing with +/- controls.
 - Preserve localStorage persistence.
 - Keep the app deployable as a static Vite site.
+- Keep OpenCV.js lazy-loaded so ordinary optimizer use does not pay the computer-vision startup cost.
 - Use relative asset paths so GitHub Pages/subdirectory hosting works.
 - Do not add a server or cloud dependency for screenshot parsing unless the user explicitly requests it.
 

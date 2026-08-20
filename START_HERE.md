@@ -44,7 +44,7 @@ A useful first Copilot message is:
 - Review the detection table for low-confidence guesses and correct anything wrong.
 - Avoid overlapping screenshots where the same physical card appears twice, because identical cards can legitimately exist and the importer does not auto-deduplicate them.
 
-The current recognizer is calibrated to the screenshots used to build this project. Purple, Epic, Legend, all 12 tech types, and all six current Legend Twinborns are covered. Eternal inventory-card recognition still needs a real Eternal screenshot for calibration; the review table supports manual correction in the meantime.
+The current recognizer is calibrated to the screenshots and clean card references used to build this project. Excellent, Epic, Legend, all 12 tech types, and all six current Legend Twinborns are covered. Eternal inventory-card recognition still needs a real Eternal screenshot for calibration; the review table supports manual correction in the meantime.
 
 ## 5. Tests
 

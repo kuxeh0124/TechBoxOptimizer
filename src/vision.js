@@ -1,6 +1,8 @@
 import { PARTS, PAIRS, pairKey } from './game-data.js';
+import { loadOpenCv, normalizeCardWithOpenCv } from './opencv.js';
 
 let templateCache = null;
+export const VISION_CLASSIFICATION_STAGES = Object.freeze(['presence','twinborn','identity','level','rarity']);
 
 function clamp(v,a=0,b=1){ return Math.max(a,Math.min(b,v)); }
 function rgbToHsv(r,g,b){
@@ -50,24 +52,33 @@ function asPaths(value){return Array.isArray(value)?value:[value];}
 export async function loadVisionTemplates(){
   if(templateCache)return templateCache;
   const manifest=await fetch('./vision/manifest.json').then(r=>r.json());
-  const tech={},twinborn={},levels={};
+  const tech={},art={},twinborn={},markers={},levels={};
   await Promise.all(Object.entries(manifest.tech).map(async([name,paths])=>{tech[name]=await Promise.all(asPaths(paths).map(p=>pathToImageData(p,32,32)));}));
+  await Promise.all(Object.entries(manifest.art||{}).map(async([name,paths])=>{art[name]=await Promise.all(asPaths(paths).map(p=>pathToImageData(p,48,48)));}));
   await Promise.all(Object.entries(manifest.twinborn).map(async([key,paths])=>{twinborn[key]=await Promise.all(asPaths(paths).map(p=>pathToImageData(p,64,66)));}));
+  await Promise.all(Object.entries(manifest.markers||{}).map(async([name,paths])=>{markers[name]=await Promise.all(asPaths(paths).map(p=>pathToImageData(p,32,32)));}));
   for(const [rarity,byLevel] of Object.entries(manifest.levels)){
     levels[rarity]={};
     for(const [lv,paths] of Object.entries(byLevel)){
       levels[rarity][lv]=await Promise.all(asPaths(paths).map(p=>pathToImageData(p,40,40)));
     }
   }
-  templateCache={tech,twinborn,levels};return templateCache;
+  const allLevels={};
+  for(const byLevel of Object.values(levels))for(const [level,samples] of Object.entries(byLevel)){
+    (allLevels[level]??=[]).push(...samples);
+  }
+  templateCache={tech,art,twinborn,markers,levels,allLevels};return templateCache;
+}
+
+function isRarityHue(h){
+  return (h>.70&&h<.94)||(h>.045&&h<.19)||h>.93||h<.055;
 }
 
 function buildRarityMask(imageData){
   const {data,width,height}=imageData,mask=new Uint8Array(width*height);
   for(let p=0,i=0;p<data.length;p+=4,i++){
     const [h,s,v]=rgbToHsv(data[p],data[p+1],data[p+2]);
-    const rarityHue=(h>.72&&h<.92)||(h>.05&&h<.18)||h>.93||h<.04;
-    if(rarityHue&&s>.55&&v>.50)mask[i]=1;
+    if(isRarityHue(h)&&s>.42&&v>.40)mask[i]=1;
   }
   return mask;
 }
@@ -129,23 +140,53 @@ function fallbackGrid(width,height){
   return {xs,ys,pitchX,pitchY,source:'fallback'};
 }
 
+function chooseFiveColumns(xs,width){
+  const vals=[...xs].sort((a,b)=>a-b);
+  if(vals.length===5)return vals;
+  if(vals.length<5)return null;
+  let best=null;
+  for(let start=0;start<=vals.length-5;start++){
+    const slice=vals.slice(start,start+5);
+    const gaps=slice.slice(1).map((x,i)=>x-slice[i]),pitch=median(gaps);
+    if(pitch<width*.12||pitch>width*.26)continue;
+    const irregularity=gaps.reduce((s,g)=>s+Math.abs(g-pitch),0)/Math.max(1,pitch);
+    const leftPenalty=Math.abs(slice[0]-width*.012)/Math.max(1,width);
+    const score=irregularity+leftPenalty*.25;
+    if(!best||score<best.score)best={score,xs:slice};
+  }
+  return best?.xs||null;
+}
+
 function inferGrid(imageData){
   const {width,height}=imageData;
   let mask=buildRarityMask(imageData);mask=closeMask(mask,width,height);
-  const comps=connectedComponents(mask,width,height).filter(c=>c.area>900&&c.width>=60&&c.width<=145&&c.height>=35&&c.height<=135);
-  let xs=clusterValues(comps.filter(c=>c.width>=80).map(c=>c.minX),18);
-  let ys=clusterValues(comps.filter(c=>c.width>=80).map(c=>c.minY),20);
-  if(xs.length!==5)return fallbackGrid(width,height);
+  const minW=Math.max(34,width*.075),maxW=Math.max(90,width*.28);
+  const minH=Math.max(28,width*.055),maxH=Math.max(92,width*.28);
+  const minArea=Math.max(250,width*height*.0012);
+  const comps=connectedComponents(mask,width,height).filter(c=>c.area>minArea&&c.width>=minW&&c.width<=maxW&&c.height>=minH&&c.height<=maxH);
+  const strong=comps.filter(c=>c.width>=minW*1.15);
+  const xTol=Math.max(12,width*.03),yTol=Math.max(14,width*.034);
+  let xs=chooseFiveColumns(clusterValues(strong.map(c=>c.minX),xTol),width);
+  let ys=clusterValues(strong.map(c=>c.minY),yTol);
+  if(!xs)return fallbackGrid(width,height);
   if(ys.length<1)return fallbackGrid(width,height);
-  // Drop accidental intermediate clusters by preferring a regular ~118px pitch.
+  // Drop accidental intermediate clusters by preferring the regular grid pitch.
   if(ys.length>1){
     const expected=width*.212;
     const kept=[ys[0]];
     for(let i=1;i<ys.length;i++)if(ys[i]-kept[kept.length-1]>expected*.65)kept.push(ys[i]);
     ys=kept;
   }
-  const pitchX=median(xs.slice(1).map((x,i)=>x-xs[i]))||width*.1975;
+  const expectedPitchX=width*.1975;
+  const xGaps=xs.slice(1).map((x,i)=>x-xs[i]);
+  const stableXGaps=xGaps.filter(g=>g>=expectedPitchX*.82&&g<=expectedPitchX*1.18);
+  const pitchX=stableXGaps.length?stableXGaps.reduce((sum,g)=>sum+g,0)/stableXGaps.length:(median(xGaps)||expectedPitchX);
+  xs=xs.map((_,index)=>Math.round(xs[0]+index*pitchX));
   const pitchY=ys.length>1?(median(ys.slice(1).map((y,i)=>y-ys[i]))||width*.212):width*.212;
+  // A clipped/equipped first row can merge with screen chrome and disappear
+  // from the component list. Recover it from the regular rows below; card
+  // presence filtering later discards an extrapolated row when it is empty.
+  while(ys.length&&ys[0]-pitchY>=0)ys.unshift(Math.round(ys[0]-pitchY));
   return {xs,ys,pitchX,pitchY,source:'detected'};
 }
 
@@ -153,12 +194,23 @@ function rarityCounts(imageData,x0,y0,w,h){
   const {data,width,height}=imageData,counts={Purple:0,Epic:0,Legend:0};
   const xa=Math.max(0,Math.floor(x0)),ya=Math.max(0,Math.floor(y0)),xb=Math.min(width,Math.ceil(x0+w)),yb=Math.min(height,Math.ceil(y0+h));
   for(let y=ya;y<yb;y++)for(let x=xa;x<xb;x++){
-    const p=(y*width+x)*4,[hh,s,v]=rgbToHsv(data[p],data[p+1],data[p+2]);if(s<.55||v<.5)continue;
-    if(hh>.72&&hh<.92)counts.Purple++;
-    if(hh>.05&&hh<.18)counts.Epic++;
-    if(hh>.93||hh<.04)counts.Legend++;
+    const p=(y*width+x)*4,[hh,s,v]=rgbToHsv(data[p],data[p+1],data[p+2]);if(s<.42||v<.40)continue;
+    if(hh>.70&&hh<.94)counts.Purple++;
+    if(hh>.045&&hh<.19)counts.Epic++;
+    if(hh>.93||hh<.055)counts.Legend++;
   }
   return counts;
+}
+
+function cardPresenceCount(imageData,x0,y0,w,h){
+  const {data,width,height}=imageData;
+  const xa=Math.max(0,Math.floor(x0)),ya=Math.max(0,Math.floor(y0)),xb=Math.min(width,Math.ceil(x0+w)),yb=Math.min(height,Math.ceil(y0+h));
+  let count=0;
+  for(let y=ya;y<yb;y++)for(let x=xa;x<xb;x++){
+    const p=(y*width+x)*4,[,s,v]=rgbToHsv(data[p],data[p+1],data[p+2]);
+    if(s>.38&&v>.38)count++;
+  }
+  return count;
 }
 
 function shiftedMse(a,b,maxShift=4,mode='rect'){
@@ -186,7 +238,20 @@ function shiftedMse(a,b,maxShift=4,mode='rect'){
   return best;
 }
 
-function nearestTemplate(patch,templates,{maxShift=0,mode='rect',refineBelow=.12}={}){
+export function calibratedTemplateConfidence(bestScore,secondScore,qualityScale=7000){
+  if(!Number.isFinite(bestScore)||!Number.isFinite(secondScore))return 0;
+  const separation=clamp((secondScore-bestScore)/Math.max(1,secondScore));
+  const quality=clamp(1-bestScore/Math.max(1,qualityScale));
+  return clamp(1-(1-quality)*(1-separation));
+}
+
+function matchMetrics(bestScore,secondScore,qualityScale){
+  const separation=Number.isFinite(bestScore)&&Number.isFinite(secondScore)?clamp((secondScore-bestScore)/Math.max(1,secondScore)):0;
+  const quality=Number.isFinite(bestScore)?clamp(1-bestScore/Math.max(1,qualityScale)):0;
+  return {separation,quality,confidence:calibratedTemplateConfidence(bestScore,secondScore,qualityScale)};
+}
+
+function nearestTemplate(patch,templates,{maxShift=0,mode='rect',refineBelow=.12,qualityScale=7000}={}){
   const direct=[];
   for(const [name,value] of Object.entries(templates)){
     const samples=Array.isArray(value)?value:[value];
@@ -194,9 +259,10 @@ function nearestTemplate(patch,templates,{maxShift=0,mode='rect',refineBelow=.12
     direct.push([best,name,samples]);
   }
   direct.sort((a,b)=>a[0]-b[0]);
+  if(!direct.length)return {name:null,score:Infinity,secondName:null,secondScore:Infinity,separation:0,quality:0,confidence:0};
   const dBest=direct[0]||[Infinity,null,[]],dSecond=direct[1]||[dBest[0]*1.5,null,[]];
-  let confidence=clamp((dSecond[0]-dBest[0])/Math.max(1,dSecond[0]));
-  if(!maxShift||confidence>=refineBelow)return {name:dBest[1],score:dBest[0],secondScore:dSecond[0],confidence};
+  const directMetrics=matchMetrics(dBest[0],dSecond[0],qualityScale);
+  if(!maxShift||directMetrics.separation>=refineBelow)return {name:dBest[1],score:dBest[0],secondName:dSecond[1],secondScore:dSecond[0],...directMetrics};
 
   // Only refine the three closest direct candidates. This keeps multi-screenshot
   // import fast while still tolerating a few pixels of crop/scale drift.
@@ -205,8 +271,7 @@ function nearestTemplate(patch,templates,{maxShift=0,mode='rect',refineBelow=.12
     return [best,name];
   }).sort((a,b)=>a[0]-b[0]);
   const best=refined[0]||[Infinity,null],second=refined[1]||[best[0]*1.5,null];
-  confidence=clamp((second[0]-best[0])/Math.max(1,second[0]));
-  return {name:best[1],score:best[0],secondScore:second[0],confidence};
+  return {name:best[1],score:best[0],secondName:second[1],secondScore:second[0],...matchMetrics(best[0],second[0],qualityScale)};
 }
 
 function classifyRarity(imageData,x0,y0,w,h){
@@ -216,41 +281,100 @@ function classifyRarity(imageData,x0,y0,w,h){
 }
 
 function cardCrop(imageData,x0,y0,w,h,kind){
+  if(kind==='marker')return cropImageData(imageData,x0,y0,w*.30,h*.30,32,32);
   if(kind==='tech')return cropImageData(imageData,x0+w*.75,y0+h*.07,w*.30,h*.30,32,32);
+  if(kind==='art')return cropImageData(imageData,x0+w*.16,y0+h*.18,w*.68,h*.56,48,48);
   if(kind==='level')return cropImageData(imageData,x0+w*.36,y0+h*.75,w*.28,h*.28,40,40);
   if(kind==='twinborn')return cropImageData(imageData,x0+w*.18,y0+h*.20,w*.64,h*.66,64,66);
   return null;
 }
 
-function classifyCard(imageData,x0,y0,cardW,cardH,templates){
-  const rr=classifyRarity(imageData,x0,y0,cardW,cardH);
-  if(rr.count<450)return null;
+export function hasTwinbornMarker(marker){
+  const separation=marker?.separation??marker?.confidence??0;
+  const quality=marker?.quality??1;
+  return marker?.name==='Twinborn'&&separation>.035&&quality>.16;
+}
 
-  // Twinborn detection is currently calibrated for the known Legend Twinborn artwork.
-  if(rr.rarity==='Legend'){
-    const tbPatch=cardCrop(imageData,x0,y0,cardW,cardH,'twinborn'),tb=nearestTemplate(tbPatch,templates.twinborn,{maxShift:6,mode:'inner'});
-    if(tb.score<2500&&tb.confidence>.10){
-      return {kind:'twinborn',pairKey:tb.name,rarity:'Legend',level:0,confidence:clamp(.45+tb.confidence*.55),scores:{twinborn:tb,rarity:rr}};
-    }
+export function detectedLevel(templateName,secondName=null,separation=1){
+  let level=Number(templateName);
+  if(level===0&&Number(secondName)===1&&separation<.22)level=1;
+  return Number.isInteger(level)&&level>=0?level:0;
+}
+
+function chooseTechGuess(tech,art){
+  if(!art?.name)return {name:tech.name,confidence:tech.confidence,source:'badge'};
+  if(tech.name===art.name){
+    return {name:tech.name,confidence:clamp(.18+tech.confidence*.46+art.confidence*.46),source:'badge+art'};
+  }
+  const artUsable=art.confidence>.08&&art.score<5200;
+  if(artUsable&&(tech.confidence<.16||art.confidence>tech.confidence*1.12)){
+    return {name:art.name,confidence:clamp(art.confidence*.72+tech.confidence*.12),source:'art'};
+  }
+  return {name:tech.name,confidence:clamp(tech.confidence*.62),source:'badge-disagrees'};
+}
+
+function classifyCard(imageData,x0,y0,cardW,cardH,templates){
+  const presence=cardPresenceCount(imageData,x0,y0,cardW,cardH);
+  if(presence<Math.max(120,cardW*cardH*.055))return null;
+
+  // Classification order is deliberate: Twinborn, identity, level, then rarity.
+  // A color mistake must not prevent the Twinborn path from running.
+  const markerPatch=templates.markers&&Object.keys(templates.markers).length?cardCrop(imageData,x0,y0,cardW,cardH,'marker'):null;
+  const marker=markerPatch?nearestTemplate(markerPatch,templates.markers,{maxShift:4,mode:'circle',qualityScale:4500}):null;
+  if(hasTwinbornMarker(marker)){
+    const tbPatch=cardCrop(imageData,x0,y0,cardW,cardH,'twinborn'),tb=nearestTemplate(tbPatch,templates.twinborn,{maxShift:6,mode:'inner',qualityScale:8000});
+    const rr=classifyRarity(imageData,x0,y0,cardW,cardH);
+    const confidence=clamp(rr.confidence*.18+marker.confidence*.48+tb.confidence*.34);
+    return {kind:'twinborn',pairKey:tb.name,rarity:rr.rarity,level:0,confidence,scores:{presence,marker,twinborn:tb,rarity:rr}};
   }
 
-  const techPatch=cardCrop(imageData,x0,y0,cardW,cardH,'tech'),tech=nearestTemplate(techPatch,templates.tech,{maxShift:4,mode:'circle'});
-  const levelPatch=cardCrop(imageData,x0,y0,cardW,cardH,'level'),levelSet=templates.levels[rr.rarity]||{};
-  const lv=nearestTemplate(levelPatch,levelSet,{maxShift:4,mode:'rect'});
-  const level=Number(lv.name||0);
-  const confidence=clamp(rr.confidence*.35+tech.confidence*.40+lv.confidence*.25);
-  return {kind:'part',tech:tech.name,rarity:rr.rarity,level,confidence,scores:{tech,level:lv,rarity:rr}};
+  const techPatch=cardCrop(imageData,x0,y0,cardW,cardH,'tech'),tech=nearestTemplate(techPatch,templates.tech,{maxShift:4,mode:'circle',qualityScale:5000});
+  const artPatch=templates.art&&Object.keys(templates.art).length?cardCrop(imageData,x0,y0,cardW,cardH,'art'):null;
+  const art=artPatch?nearestTemplate(artPatch,templates.art,{maxShift:6,mode:'inner',qualityScale:9000}):null;
+  const techChoice=chooseTechGuess(tech,art);
+  const levelPatch=cardCrop(imageData,x0,y0,cardW,cardH,'level'),levelSet=templates.allLevels||{};
+  const lv=nearestTemplate(levelPatch,levelSet,{maxShift:4,mode:'rect',qualityScale:5000});
+  const level=detectedLevel(lv.name,lv.secondName,lv.separation);
+  const rr=classifyRarity(imageData,x0,y0,cardW,cardH);
+  const confidence=clamp(rr.confidence*.32+techChoice.confidence*.43+lv.confidence*.25);
+  return {kind:'part',tech:techChoice.name,rarity:rr.rarity,level,confidence,scores:{presence,marker,tech,art,techChoice,level:lv,rarity:rr}};
+}
+
+function cardIdentity(card){
+  if(!card)return null;
+  return card.kind==='twinborn'?`twinborn:${card.pairKey}`:`part:${card.tech}`;
 }
 
 export async function parseScreenshotFile(file){
-  const templates=await loadVisionTemplates(),img=await fileToImage(file),imageData=imageDataFromImage(img),grid=inferGrid(imageData);
-  const cardW=Math.max(90,grid.pitchX*.91),cardH=Math.max(92,grid.pitchY*.87),cards=[];
+  const [templates,cv]=await Promise.all([loadVisionTemplates(),loadOpenCv().catch(()=>null)]);
+  const img=await fileToImage(file),imageData=imageDataFromImage(img),grid=inferGrid(imageData);
+  const cardW=Math.max(42,grid.pitchX*.91),cardH=Math.max(48,grid.pitchY*.87),cards=[];
+  let alignedCards=0;
   for(let r=0;r<grid.ys.length;r++)for(let c=0;c<grid.xs.length;c++){
     const x0=grid.xs[c],y0=grid.ys[r];if(y0+cardH>imageData.height+8)continue;
-    const card=classifyCard(imageData,x0,y0,cardW,cardH,templates);if(!card)continue;
+    const presence=cardPresenceCount(imageData,x0,y0,cardW,cardH);
+    if(presence<Math.max(120,cardW*cardH*.055))continue;
+    let card=classifyCard(imageData,x0,y0,cardW,cardH,templates);
+    let alignment={method:'percentage',confidence:0};
+    if(cv){
+      const expanded=cropImageData(imageData,x0-cardW*.10,y0-cardH*.06,cardW*1.20,cardH*1.14,120,118);
+      const normalized=normalizeCardWithOpenCv(expanded,cv);
+      if(normalized){
+        const candidate=classifyCard(normalized.imageData,0,0,normalized.imageData.width,normalized.imageData.height,templates);
+        const agrees=cardIdentity(candidate)===cardIdentity(card)&&candidate?.rarity===card?.rarity&&candidate?.level===card?.level;
+        const improvesLowConfidence=card&&card.confidence<.50&&candidate?.confidence>card.confidence+.20;
+        if(candidate&&(!card||(agrees&&candidate.confidence>=card.confidence-.08)||improvesLowConfidence)){
+          card=candidate;alignment=normalized.alignment;alignedCards++;
+        }else{
+          alignment={method:'percentage',confidence:0,openCvCandidate:normalized.alignment.confidence};
+        }
+      }
+    }
+    if(!card)continue;
+    card.scores.alignment=alignment;
     cards.push({...card,id:`${file.name}:${r}:${c}`,row:r,col:c,x0,y0});
   }
-  return {fileName:file.name,width:imageData.width,height:imageData.height,grid,cards};
+  return {fileName:file.name,width:imageData.width,height:imageData.height,grid:{...grid,cardW,cardH,openCv:!!cv,alignedCards},cards};
 }
 
 export async function parseScreenshotFiles(files){

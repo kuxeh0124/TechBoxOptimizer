@@ -1,6 +1,6 @@
 import {
   PARTS,FIELDS,ENERGY,PAIRS,pairKey,pairLabel,levelName,blankInventory,cloneInventory,
-  screenshotPreset,defaultTwinbornOwned,emptyTargets,rarityLevelToField
+  screenshotPreset,latestScreenshotPreset,defaultTwinbornOwned,emptyTargets,rarityLevelToField
 } from './game-data.js';
 import {
   optimizeCore,planChestAllocation,findNextResonanceBreakpoint,sumFinalState,totalEternals,
@@ -50,10 +50,10 @@ function renderTwinbornOwnership(){
 }
 
 function fieldHeader(field){
-  if(field.startsWith('P'))return `<span class="purple-h">P${field.slice(1)}</span>`;
-  if(field.startsWith('Y'))return `<span class="epic-h">Epic ${field.slice(1)}</span>`;
-  if(field.startsWith('R'))return `<span class="legend-h">Legend ${field.slice(1)}</span>`;
-  return '<span class="eternal-h">Eternal</span>';
+  if(field==='Rainbow')return '<span class="eternal-h">Eternal</span>';
+  if(field.startsWith('P'))return `<span class="purple-h">${levelName(field)}</span>`;
+  if(field.startsWith('Y'))return `<span class="epic-h">${levelName(field)}</span>`;
+  return `<span class="legend-h">${levelName(field)}</span>`;
 }
 function renderInventory(){
   const head=`<thead><tr><th>Tech</th><th>Use chests?</th>${FIELDS.map(f=>`<th>${fieldHeader(f)}</th>`).join('')}</tr></thead>`;
@@ -108,8 +108,28 @@ function renderSelectedFiles(){
   $('screenshotPreview').innerHTML=selectedFiles.map(f=>{const u=URL.createObjectURL(f);previewUrls.push(u);return `<div class="preview"><img src="${u}" alt="${f.name}"><div class="meta">${f.name}</div></div>`;}).join('');
 }
 
-function confidenceClass(v){return v>=.35?'high':v>=.15?'mid':'low';}
+function confidenceClass(v){return v>=.75?'high':v>=.45?'mid':'low';}
 function levelsForRarity(r){if(r==='Purple')return [0,1,2];if(r==='Epic')return [0,1,2,3];if(r==='Legend')return [0,1,2,3,4];return [0];}
+function scoreNum(v){return Number.isFinite(v)?Math.round(v):'n/a';}
+function detectionSignals(card){
+  const s=card.scores||{},bits=[];
+  if(s.alignment)bits.push(`Align ${s.alignment.method==='opencv'?`OpenCV ${Math.round(s.alignment.confidence*100)}%`:'percentage fallback'}`);
+  if(s.marker)bits.push(`Marker ${s.marker.name} ${Math.round(s.marker.confidence*100)}% (${scoreNum(s.marker.score)}/${scoreNum(s.marker.secondScore)})`);
+  if(card.kind==='twinborn'&&s.twinborn)bits.push(`Twinborn ${s.twinborn.name} ${Math.round(s.twinborn.confidence*100)}% (${scoreNum(s.twinborn.score)}/${scoreNum(s.twinborn.secondScore)})`);
+  if(card.kind!=='twinborn'&&s.tech)bits.push(`Badge ${s.tech.name} ${Math.round(s.tech.confidence*100)}% (${scoreNum(s.tech.score)}/${scoreNum(s.tech.secondScore)})`);
+  if(card.kind!=='twinborn'&&s.art)bits.push(`Art ${s.art.name} ${Math.round(s.art.confidence*100)}% (${scoreNum(s.art.score)}/${scoreNum(s.art.secondScore)})${s.techChoice?.source?` (${s.techChoice.source})`:''}`);
+  if(card.kind!=='twinborn'&&s.level)bits.push(`Lv ${s.level.name??0} ${Math.round(s.level.confidence*100)}% (${scoreNum(s.level.score)}/${scoreNum(s.level.secondScore)})`);
+  if(s.rarity?.counts)bits.push(`Final color Ex/Ep/L ${s.rarity.counts.Purple}/${s.rarity.counts.Epic}/${s.rarity.counts.Legend}`);
+  return bits.join(' | ')||'-';
+}
+function visionSummary(){
+  const cards=parsedResults.flatMap(r=>r.cards),low=cards.filter(c=>(c.confidence||0)<.45).length;
+  const byFile=parsedResults.map(r=>{
+    const avg=r.cards.length?r.cards.reduce((s,c)=>s+(c.confidence||0),0)/r.cards.length:0;
+    return `${r.fileName}: ${r.cards.length} cards, ${r.grid?.source||'unknown'} grid, ${r.grid?.alignedCards||0} OpenCV-aligned, avg ${Math.round(avg*100)}%`;
+  }).join(' | ');
+  return `Detected ${cards.length} cards across ${parsedResults.length} screenshot${parsedResults.length===1?'':'s'}. ${low?`${low} low-confidence guess${low===1?'':'es'} highlighted.`:'No low-confidence guesses.'}${byFile?` ${byFile}`:''}`;
+}
 function renderReview(){
   if(!parsedResults.length){$('reviewPanel').innerHTML='';return;}
   let index=0,rows='';
@@ -117,15 +137,16 @@ function renderReview(){
     const kindSel=`<select data-review-kind="${id}"><option value="part" ${kind==='part'?'selected':''}>Part</option><option value="twinborn" ${kind==='twinborn'?'selected':''}>Twinborn</option></select>`;
     let ident,rarity,level;
     if(kind==='twinborn'){
-      ident=`<select data-review-pair="${id}">${PAIRS.map(p=>`<option value="${pairKey(p)}" ${pairKey(p)===card.pairKey?'selected':''}>${pairLabel(p)}</option>`).join('')}</select>`;rarity='Legend Twinborn';level='—';
+      ident=`<select data-review-pair="${id}">${PAIRS.map(p=>`<option value="${pairKey(p)}" ${pairKey(p)===card.pairKey?'selected':''}>${pairLabel(p)}</option>`).join('')}</select>`;
+      rarity=`<select data-review-rarity="${id}">${[['Legend','Legend Twinborn'],['Eternal','Eternal Twinborn']].map(([value,label])=>`<option value="${value}" ${value===card.rarity?'selected':''}>${label}</option>`).join('')}</select>`;level='—';
     }else{
       ident=`<select data-review-tech="${id}">${PARTS.map(p=>`<option ${p===card.tech?'selected':''}>${p}</option>`).join('')}</select>`;
-      rarity=`<select data-review-rarity="${id}">${['Purple','Epic','Legend','Eternal'].map(r=>`<option ${r===card.rarity?'selected':''}>${r}</option>`).join('')}</select>`;
+      rarity=`<select data-review-rarity="${id}">${[['Purple','Excellent'],['Epic','Epic'],['Legend','Legend'],['Eternal','Eternal']].map(([value,label])=>`<option value="${value}" ${value===card.rarity?'selected':''}>${label}</option>`).join('')}</select>`;
       level=`<select data-review-level="${id}">${levelsForRarity(card.rarity).map(l=>`<option value="${l}" ${l===card.level?'selected':''}>${l}</option>`).join('')}</select>`;
     }
-    rows+=`<tr><td><input type="checkbox" data-review-use="${id}" ${card.ignored?'':'checked'}></td><td>${res.fileName}</td><td>${card.row+1},${card.col+1}</td><td>${kindSel}</td><td>${ident}</td><td>${rarity}</td><td>${level}</td><td class="confidence ${confidenceClass(card.confidence||0)}">${conf}%</td></tr>`;
+    rows+=`<tr><td><input type="checkbox" data-review-use="${id}" ${card.ignored?'':'checked'}></td><td>${res.fileName}</td><td>${card.row+1},${card.col+1}</td><td>${kindSel}</td><td>${ident}</td><td>${rarity}</td><td>${level}</td><td class="confidence ${confidenceClass(card.confidence||0)}">${conf}%</td><td class="hint">${detectionSignals(card)}</td></tr>`;
   }}
-  $('reviewPanel').innerHTML=`<div class="button-row"><button id="applyReviewBtn">Apply reviewed detection</button><span class="hint">Low confidence does not block import; correct any wrong guesses here and apply again.</span></div><div class="review-table"><table><thead><tr><th>Use</th><th>Screenshot</th><th>Cell</th><th>Type</th><th>Tech / Twinborn</th><th>Rarity</th><th>Lv</th><th>Confidence</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  $('reviewPanel').innerHTML=`<div class="button-row"><button id="applyReviewBtn">Apply reviewed detection</button><span class="hint">Low confidence does not block import; correct any wrong guesses here and apply again.</span></div><div class="review-table"><table><thead><tr><th>Use</th><th>Screenshot</th><th>Cell</th><th>Type</th><th>Tech / Twinborn</th><th>Rarity</th><th>Lv</th><th>Confidence</th><th>Signals</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   const flat=parsedResults.flatMap(r=>r.cards);
   $('reviewPanel').querySelectorAll('[data-review-use]').forEach(el=>el.addEventListener('change',()=>{flat[+el.dataset.reviewUse].ignored=!el.checked;}));
   $('reviewPanel').querySelectorAll('[data-review-kind]').forEach(el=>el.addEventListener('change',()=>{const card=flat[+el.dataset.reviewKind];card.kind=el.value;if(el.value==='twinborn'){card.pairKey=card.pairKey||pairKey(PAIRS[0]);delete card.tech;}else{card.tech=card.tech||PARTS[0];card.rarity=card.rarity||'Epic';card.level=card.level||0;}renderReview();}));
@@ -142,15 +163,15 @@ function applyParsedResults(auto=false){
   if($('replaceOnImport').checked)inventory=derived.inventory;else inventory=addInventory(cloneInventory(inventory),derived.inventory);
   if($('syncTwinbornsOnImport').checked)for(const [key,val] of Object.entries(derived.twinbornDetected))if(val)twinbornOwned[key]=true;
   renderInventory();renderTwinbornOwnership();renderRoadmap();save();runOptimizer();
-  $('visionStatus').textContent=`Applied ${filteredParsedResults().reduce((s,r)=>s+r.cards.length,0)} detected cards from ${parsedResults.length} screenshot${parsedResults.length===1?'':'s'}${auto?' automatically':''}.`;
+  $('visionStatus').textContent=`Applied ${filteredParsedResults().reduce((s,r)=>s+r.cards.length,0)} detected cards from ${parsedResults.length} screenshot${parsedResults.length===1?'':'s'}${auto?' automatically':''}. ${visionSummary()}`;
 }
 
 async function analyzeScreens(){
   if(!selectedFiles.length){$('visionStatus').textContent='Choose at least one screenshot first.';return;}
   $('analyzeBtn').disabled=true;$('visionStatus').textContent='Analyzing screenshots…';
   try{
-    parsedResults=await parseScreenshotFiles(selectedFiles);const cardCount=parsedResults.reduce((s,r)=>s+r.cards.length,0),low=parsedResults.flatMap(r=>r.cards).filter(c=>(c.confidence||0)<.15).length;
-    $('visionStatus').textContent=`Detected ${cardCount} cards across ${parsedResults.length} screenshot${parsedResults.length===1?'':'s'}. ${low?`${low} low-confidence guess${low===1?'':'es'} highlighted for review.`:'All guesses passed the basic confidence threshold.'}`;
+    parsedResults=await parseScreenshotFiles(selectedFiles);
+    $('visionStatus').textContent=visionSummary();
     renderReview();applyParsedResults(true);
   }catch(err){$('visionStatus').textContent=`Screenshot analysis failed: ${err.message||err}`;}finally{$('analyzeBtn').disabled=false;}
 }
@@ -166,6 +187,7 @@ function wireUpload(){
 function wireButtons(){
   $('optimizeBtn').addEventListener('click',runOptimizer);
   $('presetBtn').addEventListener('click',()=>{inventory=screenshotPreset();twinbornOwned=defaultTwinbornOwned();targets=emptyTargets();renderAll();save();runOptimizer();});
+  $('latestPresetBtn').addEventListener('click',()=>{inventory=latestScreenshotPreset();twinbornOwned=defaultTwinbornOwned();targets=emptyTargets();renderAll();save();runOptimizer();});
   $('clearBtn').addEventListener('click',()=>{inventory=blankInventory();targets=emptyTargets();renderInventory();renderRoadmap();save();runOptimizer();});
   ['chestCount','slotCount','planMode','tbTarget','maxLoss'].forEach(id=>$(id).addEventListener('change',()=>{save();renderRoadmap();runOptimizer();}));
 }

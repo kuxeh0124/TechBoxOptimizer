@@ -1,6 +1,7 @@
-<!doctype html><meta charset="utf-8"><pre id="out">starting</pre>
+<!doctype html><meta charset="utf-8"><base href="../"><pre id="out">starting</pre>
 <script type="module">
-import { parseScreenshotFile } from '../src/vision.js';
+import { parseScreenshotFile, parseScreenshotFiles, parsedResultsToInventory } from '../src/vision.js';
+import { PAIRS, pairKey, screenshotPreset, blankInventory, rarityLevelToField } from '../src/game-data.js';
 const expected={
   'inventory_legend.png': [
     ['TB','Rocket|Drill','Legend',0],['TB','Soccer|Durian','Legend',0],['TB','Lightning|Boomerang','Legend',0],['TB','Drone|Forcefield','Legend',0],['TB','Laser|Shield','Legend',0],
@@ -23,10 +24,11 @@ const expected={
 };
 function core(c){return c.kind==='twinborn'?['TB',c.pairKey,c.rarity,c.level]:['PART',c.tech,c.rarity,c.level]}
 try{
-  const report=[];
+  const report=[], files=[];
   for(const [name,exp] of Object.entries(expected)){
-    const blob=await fetch('./fixtures/'+name).then(r=>r.blob());
+    const blob=await fetch('./test/fixtures/'+name).then(r=>r.blob());
     const file=new File([blob],name,{type:'image/png'});
+    files.push(file);
     const parsed=await parseScreenshotFile(file);
     const got=parsed.cards.map(core);
     const errors=[];
@@ -34,6 +36,15 @@ try{
     for(let i=0;i<n;i++) if(JSON.stringify(got[i])!==JSON.stringify(exp[i])) errors.push({i,expected:exp[i],got:got[i]});
     report.push({name,grid:parsed.grid.source,cards:got.length,errors});
   }
+  const multiParsed=await parseScreenshotFiles(files);
+  const derived=parsedResultsToInventory(multiParsed,blankInventory,rarityLevelToField);
+  const aggregateErrors=[];
+  if(JSON.stringify(derived.inventory)!==JSON.stringify(screenshotPreset())) aggregateErrors.push('aggregate inventory does not match screenshot preset');
+  for(const pair of PAIRS){
+    const key=pairKey(pair);
+    if(!derived.twinbornDetected[key]) aggregateErrors.push(`missing detected Twinborn ${key}`);
+  }
+  report.push({name:'multi-screenshot aggregate',screenshots:multiParsed.length,cards:multiParsed.reduce((n,r)=>n+r.cards.length,0),errors:aggregateErrors});
   const ok=report.every(r=>r.errors.length===0);
   document.querySelector('#out').textContent=(ok?'PASS':'FAIL')+'\n'+JSON.stringify(report,null,2);
   document.body.dataset.status=ok?'pass':'fail';

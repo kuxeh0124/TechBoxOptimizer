@@ -25,6 +25,29 @@ async function loadImage(src){
   return new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=reject;img.src=src;});
 }
 
+export function resolveVisionAssetUrl(path,visionRoot){
+  const relative=String(path).replace(/^\.\/vision\//,'').replace(/^vision\//,'');
+  return new URL(relative,visionRoot).href;
+}
+
+async function loadVisionManifest(){
+  const configuredBase=import.meta.env?.BASE_URL||'./';
+  const appBase=new URL(configuredBase,document.baseURI);
+  const candidates=[new URL('vision/manifest.json',appBase),new URL('public/vision/manifest.json',appBase)];
+  let lastError;
+  for(const url of candidates){
+    try{
+      const response=await fetch(url);
+      const body=await response.text();
+      if(!response.ok)throw new Error(`HTTP ${response.status}`);
+      let manifest;
+      try{manifest=JSON.parse(body);}catch{throw new Error(`expected JSON but received ${response.headers.get('content-type')||'an unknown content type'}`);}
+      return {manifest,visionRoot:new URL('./',url)};
+    }catch(error){lastError=new Error(`Vision templates unavailable at ${url.href}: ${error.message||error}`);}
+  }
+  throw lastError;
+}
+
 async function fileToImage(file){
   const url=URL.createObjectURL(file);
   try{return await loadImage(url);}finally{setTimeout(()=>URL.revokeObjectURL(url),1000);}
@@ -51,16 +74,17 @@ function asPaths(value){return Array.isArray(value)?value:[value];}
 
 export async function loadVisionTemplates(){
   if(templateCache)return templateCache;
-  const manifest=await fetch('./vision/manifest.json').then(r=>r.json());
+  const {manifest,visionRoot}=await loadVisionManifest();
+  const assetPath=path=>resolveVisionAssetUrl(path,visionRoot);
   const tech={},art={},twinborn={},markers={},levels={};
-  await Promise.all(Object.entries(manifest.tech).map(async([name,paths])=>{tech[name]=await Promise.all(asPaths(paths).map(p=>pathToImageData(p,32,32)));}));
-  await Promise.all(Object.entries(manifest.art||{}).map(async([name,paths])=>{art[name]=await Promise.all(asPaths(paths).map(p=>pathToImageData(p,48,48)));}));
-  await Promise.all(Object.entries(manifest.twinborn).map(async([key,paths])=>{twinborn[key]=await Promise.all(asPaths(paths).map(p=>pathToImageData(p,64,66)));}));
-  await Promise.all(Object.entries(manifest.markers||{}).map(async([name,paths])=>{markers[name]=await Promise.all(asPaths(paths).map(p=>pathToImageData(p,32,32)));}));
+  await Promise.all(Object.entries(manifest.tech).map(async([name,paths])=>{tech[name]=await Promise.all(asPaths(paths).map(p=>pathToImageData(assetPath(p),32,32)));}));
+  await Promise.all(Object.entries(manifest.art||{}).map(async([name,paths])=>{art[name]=await Promise.all(asPaths(paths).map(p=>pathToImageData(assetPath(p),48,48)));}));
+  await Promise.all(Object.entries(manifest.twinborn).map(async([key,paths])=>{twinborn[key]=await Promise.all(asPaths(paths).map(p=>pathToImageData(assetPath(p),64,66)));}));
+  await Promise.all(Object.entries(manifest.markers||{}).map(async([name,paths])=>{markers[name]=await Promise.all(asPaths(paths).map(p=>pathToImageData(assetPath(p),32,32)));}));
   for(const [rarity,byLevel] of Object.entries(manifest.levels)){
     levels[rarity]={};
     for(const [lv,paths] of Object.entries(byLevel)){
-      levels[rarity][lv]=await Promise.all(asPaths(paths).map(p=>pathToImageData(p,40,40)));
+      levels[rarity][lv]=await Promise.all(asPaths(paths).map(p=>pathToImageData(assetPath(p),40,40)));
     }
   }
   const allLevels={};

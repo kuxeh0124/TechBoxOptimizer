@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { PARTS, PAIRS, pairKey, levelName, screenshotPreset, latestScreenshotPreset, blankInventory, defaultTwinbornOwned, emptyTargets, rarityLevelToField } from '../src/game-data.js';
 import { optimizeCore, planChestAllocation, twinbornGoalFunding, minChestsPartToLegend0 } from '../src/optimizer.js';
-import { VISION_CLASSIFICATION_STAGES, calibratedTemplateConfidence, detectedLevel, hasTwinbornMarker, parsedResultsToInventory } from '../src/vision.js';
+import { VISION_CLASSIFICATION_STAGES, calibratedTemplateConfidence, detectedLevel, hasTwinbornMarker, parsedResultsToInventory, resolveVisionAssetUrl } from '../src/vision.js';
 import { alignmentTransform } from '../src/opencv.js';
 
 test('catalogued screenshot preset baseline resonance is stable',()=>{
@@ -77,6 +77,17 @@ test('template confidence rewards a strong absolute image match',()=>{
   assert.equal(calibratedTemplateConfidence(0,1200,5000),1);
   assert.ok(calibratedTemplateConfidence(900,1200,5000)>.80);
   assert.ok(calibratedTemplateConfidence(4700,5000,5000)<.15);
+});
+
+test('vision asset paths follow the manifest that was successfully loaded',()=>{
+  assert.equal(
+    resolveVisionAssetUrl('./vision/tech/Drone_reference.png','https://example.test/TechBoxOptimizer/vision/'),
+    'https://example.test/TechBoxOptimizer/vision/tech/Drone_reference.png',
+  );
+  assert.equal(
+    resolveVisionAssetUrl('./vision/tech/Drone_reference.png','https://example.test/TechBoxOptimizer/public/vision/'),
+    'https://example.test/TechBoxOptimizer/public/vision/tech/Drone_reference.png',
+  );
 });
 
 test('vision hierarchy detects Twinborn before final rarity',()=>{

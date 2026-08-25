@@ -160,9 +160,18 @@ export function optimizeCore(N,S,inv,targetMap,preferFewerChests=false,craftPair
   alloc.reverse();return {...best,alloc};
 }
 
+export function selectedCounts(state,k){
+  let left=k;const counts={};
+  for(const lv of SUPPORT_LEVELS){const take=Math.min(left,state[lv]||0);if(take>0){counts[lv]=take;left-=take;}if(left<=0)break;}
+  return counts;
+}
+export function resonanceLoadout(alloc){
+  const counts=Object.fromEntries(SUPPORT_LEVELS.map(level=>[level,0]));
+  for(const item of alloc||[])for(const [level,count] of Object.entries(selectedCounts(item.state,item.k)))counts[level]+=count;
+  return SUPPORT_LEVELS.filter(level=>counts[level]>0).map(level=>({level,count:counts[level],energyEach:ENERGY[level],subtotal:counts[level]*ENERGY[level]}));
+}
 export function selectedText(state,k){
-  let left=k;const out=[];
-  for(const lv of SUPPORT_LEVELS){const take=Math.min(left,state[lv]||0);if(take>0){out.push(`${levelName(lv)} ×${take}`);left-=take;}if(left<=0)break;}
+  const out=Object.entries(selectedCounts(state,k)).map(([lv,count])=>`${levelName(lv)} ×${count}`);
   return out.length?out.join(' · '):'—';
 }
 export function stateText(state){

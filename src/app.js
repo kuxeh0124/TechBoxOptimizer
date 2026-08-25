@@ -5,7 +5,7 @@ import {
 import {
   optimizeCore,planChestAllocation,findNextResonanceBreakpoint,sumFinalState,totalEternals,
   selectedText,stateText,supportEnergy,routeTargetSummary,allocationSummary,nextR0Distance,
-  twinbornGoalFunding,pairFunding,legendTwinbornFunding,craftComparison,nearestTwinbornGoal
+  twinbornGoalFunding,pairFunding,legendTwinbornFunding,craftComparison,nearestTwinbornGoal,resonanceLoadout
 } from './optimizer.js';
 import { parseScreenshotFiles,parsedResultsToInventory } from './vision.js';
 
@@ -78,6 +78,11 @@ function renderRoadmap(inv=inventory){
 }
 
 function renderSummaryStats(items){$('summaryStats').innerHTML=items.map(([label,value,cls=''])=>`<div class="stat"><span>${label}</span><b class="${cls}">${value}</b></div>`).join('');}
+function renderResonanceLoadout(alloc){
+  const rows=resonanceLoadout(alloc),slots=rows.reduce((sum,row)=>sum+row.count,0),energy=rows.reduce((sum,row)=>sum+row.subtotal,0);
+  const body=rows.length?rows.map(row=>`<tr><td><strong>${levelName(row.level)}</strong></td><td>${row.count.toLocaleString()}</td><td>${row.energyEach.toLocaleString()}</td><td>${row.subtotal.toLocaleString()}</td></tr>`).join(''):'<tr><td colspan="4" class="loadout-empty">No resonance-bearing Tech Parts selected.</td></tr>';
+  $('resonanceLoadoutTable').innerHTML=`<thead><tr><th>Tier</th><th>Used</th><th>Energy each</th><th>Subtotal</th></tr></thead><tbody>${body}</tbody><tfoot><tr><td><strong>Total</strong></td><td><strong>${slots.toLocaleString()}</strong></td><td></td><td><strong>${energy.toLocaleString()}</strong></td></tr></tfoot>`;
+}
 function sumMap(m){return PARTS.reduce((s,p)=>s+(m?.[p]||0),0);}
 function chestText(count){return `${count} chest${count===1?'':'s'}`;}
 
@@ -94,6 +99,7 @@ function runOptimizer(){
       ['Final resonance',fixed.e.toLocaleString(),'good'],['Resonance gained',`${fixed.e-baseline.e>=0?'+':''}${(fixed.e-baseline.e).toLocaleString()}`],['Resonance slots filled',`${fixed.s} / ${S}`],['Choice chests assigned',`${sumMap(plan.total)} / ${N}`],
       ['Chests to next gain',next?next.chests.toLocaleString():'>512'],['Eternal parts',totalEternals(finalState)],['Twinborn progress',twinbornProgress],['Twinborn craft',craftText]
     ]);
+    renderResonanceLoadout(fixed.alloc);
     const parts=Object.fromEntries(fixed.alloc.map(a=>[a.p,a]));
     const rows=PARTS.map(p=>({p,a:parts[p],x:plan.total[p]||0})).filter(o=>o.x>0||(o.a?.k||0)>0).sort((a,b)=>b.x-a.x||(b.a?.energy||0)-(a.a?.energy||0));
     const futureText=plan.future.steps?.length?plan.future.steps.map(x=>x.label||x.target||x.kind).join(' · '):'No future-only banking required.';

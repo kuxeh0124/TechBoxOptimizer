@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { PARTS, PAIRS, pairKey, levelName, screenshotPreset, latestScreenshotPreset, blankInventory, defaultTwinbornOwned, emptyTargets, rarityLevelToField } from '../src/game-data.js';
-import { optimizeCore, planChestAllocation, twinbornGoalFunding, minChestsPartToLegend0 } from '../src/optimizer.js';
+import { optimizeCore, planChestAllocation, twinbornGoalFunding, minChestsPartToLegend0, resonanceLoadout } from '../src/optimizer.js';
 import { VISION_CLASSIFICATION_STAGES, calibratedTemplateConfidence, detectedLevel, hasTwinbornMarker, parsedResultsToInventory, resolveVisionAssetUrl } from '../src/vision.js';
 import { alignmentTransform } from '../src/opencv.js';
 
@@ -10,6 +10,16 @@ test('catalogued screenshot preset baseline resonance is stable',()=>{
   const result=optimizeCore(0,18,screenshotPreset(),emptyTargets(),true);
   assert.equal(result.e,10500);
   assert.equal(result.s,18);
+});
+
+test('resonance loadout accounts for every selected slot and energy point',()=>{
+  const result=optimizeCore(0,18,screenshotPreset(),emptyTargets(),true);
+  const loadout=resonanceLoadout(result.alloc);
+  assert.equal(loadout.reduce((sum,row)=>sum+row.count,0),result.s);
+  assert.equal(loadout.reduce((sum,row)=>sum+row.subtotal,0),result.e);
+  assert.deepEqual(loadout.map(({level,count})=>[level,count]),[
+    ['R4',6],['R3',6],['R0',1],['Y3',3],['Y2',2],
+  ]);
 });
 
 test('all supplied Epic choice chests are allocated',()=>{

@@ -70,15 +70,16 @@ function renderRoadmap(inv=inventory){
   const slots=Math.max(1,Math.floor(n($('slotCount').value,18))),lossBudget=Math.max(0,n($('maxLoss').value));
   $('roadmap').innerHTML=PAIRS.map(pair=>{
     const key=pairKey(pair),owned=!!twinbornOwned[key];
-    if(!owned){const plan=legendTwinbornFunding(inv,pair);return `<div class="tb-item"><strong>${pairLabel(pair)}</strong><div class="tb-line"><span>Ownership</span><span class="bad">MISSING</span></div><div class="tb-line"><span>${pair[0]} → Legend0</span><span>+${plan.needs[pair[0]]} Epic0</span></div><div class="tb-line"><span>${pair[1]} → Legend0</span><span>+${plan.needs[pair[1]]} Epic0</span></div><div class="tb-line"><span>To Legend Twinborn</span><span class="${plan.total===0?'good':'warn'}">${plan.total}</span></div></div>`;}
+    if(!owned){const plan=legendTwinbornFunding(inv,pair);return `<div class="tb-item"><strong>${pairLabel(pair)}</strong><div class="tb-line"><span>Ownership</span><span class="bad">MISSING</span></div><div class="tb-line"><span>${pair[0]} to Legend Lv0</span><span>${chestText(plan.needs[pair[0]])}</span></div><div class="tb-line"><span>${pair[1]} to Legend Lv0</span><span>${chestText(plan.needs[pair[1]])}</span></div><div class="tb-line"><span>To Legend Twinborn</span><span class="${plan.total===0?'good':'warn'}">${chestText(plan.total)}</span></div></div>`;}
     const plan=pairFunding(inv,pair,twinbornOwned),comp=plan.total===0?craftComparison(inv,pair,slots,targets,twinbornOwned):null;
-    const advice=plan.total>0?`${plan.total} Epic0 to fund`:comp?.craftable?(comp.loss<=lossBudget?`Craft allowed (${comp.loss>0?'−':'+'}${Math.abs(comp.loss)} reso)`:`Wait (${comp.loss} reso loss)`):'Funded';
-    return `<div class="tb-item"><strong>${pairLabel(pair)}</strong><div class="tb-line"><span>Ownership</span><span class="good">OWNED</span></div><div class="tb-line"><span>${pair[0]} → Eternal</span><span>+${plan.needs[pair[0]]} Epic0</span></div><div class="tb-line"><span>${pair[1]} → Eternal</span><span>+${plan.needs[pair[1]]} Epic0</span></div><div class="tb-line"><span>Plan</span><span class="${plan.total===0?'good':'warn'}">${advice}</span></div></div>`;
+    const advice=plan.total>0?`${chestText(plan.total)} to fund`:comp?.craftable?(comp.loss<=lossBudget?`Craft allowed (${comp.loss>0?'−':'+'}${Math.abs(comp.loss)} resonance)`:`Wait (${comp.loss} resonance loss)`):'Funded';
+    return `<div class="tb-item"><strong>${pairLabel(pair)}</strong><div class="tb-line"><span>Ownership</span><span class="good">OWNED</span></div><div class="tb-line"><span>${pair[0]} to Eternal</span><span>${chestText(plan.needs[pair[0]])}</span></div><div class="tb-line"><span>${pair[1]} to Eternal</span><span>${chestText(plan.needs[pair[1]])}</span></div><div class="tb-line"><span>Plan</span><span class="${plan.total===0?'good':'warn'}">${advice}</span></div></div>`;
   }).join('');
 }
 
 function renderSummaryStats(items){$('summaryStats').innerHTML=items.map(([label,value,cls=''])=>`<div class="stat"><span>${label}</span><b class="${cls}">${value}</b></div>`).join('');}
 function sumMap(m){return PARTS.reduce((s,p)=>s+(m?.[p]||0),0);}
+function chestText(count){return `${count} chest${count===1?'':'s'}`;}
 
 function runOptimizer(){
   try{
@@ -87,17 +88,18 @@ function runOptimizer(){
     if(!baseline||!plan)throw new Error('No valid optimization result.');
     const fixed=plan.fixed,finalState=sumFinalState(fixed.alloc),next=findNextResonanceBreakpoint(plan.finalInv,S,fixed.e,targets,512),tb=nearestTwinbornGoal(plan.finalInv,targets,targetMode,twinbornOwned);
     let craftText='—';
-    if(tb){const owned=!!twinbornOwned[pairKey(tb.pair)];if(tb.total>0)craftText=`${owned?'Eternal':'Legend'} +${tb.total}`;else if(!owned)craftText='CRAFT LEGEND TB';else{const comp=craftComparison(plan.finalInv,tb.pair,S,targets,twinbornOwned);craftText=comp?.craftable?(comp.loss<=maxLoss?`CRAFT ETERNAL (${comp.loss>0?'−':'+'}${Math.abs(comp.loss)})`:`WAIT (−${comp.loss})`):'FUNDED';}}
+    if(tb){const owned=!!twinbornOwned[pairKey(tb.pair)];if(tb.total>0)craftText='Not ready';else if(!owned)craftText='Craft Legend now';else{const comp=craftComparison(plan.finalInv,tb.pair,S,targets,twinbornOwned);craftText=comp?.craftable?(comp.loss<=maxLoss?`CRAFT ETERNAL (${comp.loss>0?'−':'+'}${Math.abs(comp.loss)})`:`WAIT (−${comp.loss})`):'FUNDED';}}
+    const twinbornProgress=tb?(tb.total?`${tb.total} chest${tb.total===1?'':'s'} to ${tb.goal}`:`${tb.goal} funded`):'No target';
     renderSummaryStats([
-      ['Resonance',fixed.e.toLocaleString(),'good'],['Gain vs current',`${fixed.e-baseline.e>=0?'+':''}${(fixed.e-baseline.e).toLocaleString()}`],['Slots used',`${fixed.s} / ${S}`],['Chests allocated',`${sumMap(plan.total)} / ${N}`],
-      ['Next reso breakpoint',next?`+${next.chests} Epic0`:'>512'],['Eternals after merges',totalEternals(finalState)],['Twinborn goal',tb?`${tb.goal} +${tb.total}`:'—'],['Craft advice',craftText]
+      ['Final resonance',fixed.e.toLocaleString(),'good'],['Resonance gained',`${fixed.e-baseline.e>=0?'+':''}${(fixed.e-baseline.e).toLocaleString()}`],['Resonance slots filled',`${fixed.s} / ${S}`],['Choice chests assigned',`${sumMap(plan.total)} / ${N}`],
+      ['Chests to next gain',next?next.chests.toLocaleString():'>512'],['Eternal parts',totalEternals(finalState)],['Twinborn progress',twinbornProgress],['Twinborn craft',craftText]
     ]);
     const parts=Object.fromEntries(fixed.alloc.map(a=>[a.p,a]));
     const rows=PARTS.map(p=>({p,a:parts[p],x:plan.total[p]||0})).filter(o=>o.x>0||(o.a?.k||0)>0).sort((a,b)=>b.x-a.x||(b.a?.energy||0)-(a.a?.energy||0));
     const futureText=plan.future.steps?.length?plan.future.steps.map(x=>x.label||x.target||x.kind).join(' · '):'No future-only banking required.';
-    const intro=`<div class="priority"><b>All ${N} chest${N===1?'':'s'} allocated.</b> Absolute max resonance for this chest count: <b>${plan.absolute.e.toLocaleString()}</b>. Selected plan: <b>${fixed.e.toLocaleString()}</b>${fixed.e<plan.absolute.e?` (−${plan.absolute.e-fixed.e} within loss budget)`:' (no resonance sacrifice)'}. ${next?`Next resonance increase is +${next.chests} Epic0 → +${next.result.e-fixed.e} energy, targeting ${routeTargetSummary(fixed,next.result)}.`:''}<br><b>Future bank:</b> ${futureText}</div>`;
+    const intro=`<div class="priority"><b>All ${chestText(N)} allocated.</b> Absolute max resonance for this chest count: <b>${plan.absolute.e.toLocaleString()}</b>. Selected plan: <b>${fixed.e.toLocaleString()}</b>${fixed.e<plan.absolute.e?` (−${plan.absolute.e-fixed.e} within loss budget)`:' (no resonance sacrifice)'}. ${next?`The next resonance increase needs ${chestText(next.chests)} and adds ${next.result.e-fixed.e} energy, targeting ${routeTargetSummary(fixed,next.result)}.`:''}<br><b>Future bank:</b> ${futureText}</div>`;
     $('optimizerResult').className='result-list';
-    $('optimizerResult').innerHTML=intro+rows.map(({p,a,x})=>`<div class="result-row"><strong>${p}</strong><div class="allocation">${x?`+${x}`:'—'}</div><div class="detail"><b>Use in resonance:</b> ${a?selectedText(a.state,a.k):'—'}<br><span class="hint"><b>Post-merge:</b> ${a?stateText(a.state):'—'}</span><br><span class="warn"><b>Next Legend0 fuel:</b> ${nextR0Distance(plan.finalInv[p])} Epic0</span></div><div class="energy">${a?supportEnergy(a.state,a.k).toLocaleString():0} energy</div></div>`).join('');
+    $('optimizerResult').innerHTML=intro+rows.map(({p,a,x})=>`<div class="result-row"><strong>${p}</strong><div class="allocation">${x?`+${x}`:'—'}</div><div class="detail"><b>Use in resonance:</b> ${a?selectedText(a.state,a.k):'—'}<br><span class="hint"><b>Post-merge:</b> ${a?stateText(a.state):'—'}</span><br><span class="warn"><b>To next Legend Lv0:</b> ${chestText(nextR0Distance(plan.finalInv[p]))}</span></div><div class="energy">${a?supportEnergy(a.state,a.k).toLocaleString():0} energy</div></div>`).join('');
     renderRoadmap(plan.finalInv);save();
   }catch(err){$('optimizerResult').className='empty';$('optimizerResult').textContent=err.message||String(err);}
 }

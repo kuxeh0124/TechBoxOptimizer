@@ -21,11 +21,31 @@
         <section class="card">
           <h2>Optimizer</h2>
           <div class="controls">
-            <label>Epic Lv0 choice chests<input id="chestCount" type="number" min="0" max="500" value="0"></label>
-            <label>Resonance slots<input id="slotCount" type="number" min="1" max="36" value="18"></label>
-            <label>Mode<select id="planMode"><option value="BAL">Balanced</option><option value="RES">Pure resonance</option><option value="TB">Twinborn rush</option></select></label>
-            <label>Twinborn target<select id="tbTarget"></select></label>
-            <label>Allowed resonance loss<input id="maxLoss" type="number" min="0" max="99999" value="0"></label>
+            <div class="control-field">
+              <label for="chestCount">Epic Lv0 choice chests</label>
+              <input id="chestCount" type="number" min="0" max="500" value="0" aria-describedby="chestCountHelp">
+              <span class="field-note" id="chestCountHelp">Chests you want assigned now. Each one becomes one Epic Lv0 Tech Part of your choice.</span>
+            </div>
+            <div class="control-field">
+              <label for="slotCount">Resonance slot capacity</label>
+              <input id="slotCount" type="number" min="1" max="36" value="18" aria-describedby="slotCountHelp">
+              <span class="field-note" id="slotCountHelp">Maximum Tech Parts that can contribute resonance at once. This is capacity, not inventory; the preset uses 18.</span>
+            </div>
+            <div class="control-field">
+              <label for="planMode">Planning priority</label>
+              <select id="planMode" aria-describedby="planModeHelp"><option value="BAL">Balanced</option><option value="RES">Pure resonance</option><option value="TB">Twinborn rush</option></select>
+              <span class="field-note" id="planModeHelp">Balanced protects resonance, Pure maximizes it, and Rush favors Twinborn progress.</span>
+            </div>
+            <div class="control-field target-field">
+              <label for="tbTarget">Twinborn target</label>
+              <select id="tbTarget" aria-describedby="tbTargetHelp"></select>
+              <span class="field-note" id="tbTargetHelp">Auto works toward missing Legend Twinborns first, then the nearest Eternal upgrade.</span>
+            </div>
+            <div class="control-field">
+              <label for="maxLoss">Allowed resonance loss</label>
+              <input id="maxLoss" type="number" min="0" max="99999" value="0" aria-describedby="maxLossHelp">
+              <span class="field-note" id="maxLossHelp">In Balanced mode, the most resonance energy you will trade for Twinborn progress. Use 0 to protect it all.</span>
+            </div>
           </div>
           <div class="button-row">
             <button class="primary" id="optimizeBtn">Optimize all chests</button>
@@ -33,7 +53,7 @@
             <button id="latestPresetBtn">Load latest screenshot list</button>
             <button class="danger" id="clearBtn">Clear normal inventory</button>
           </div>
-          <p class="hint">Primary objective is maximum resonance. Balanced mode then spends only the allowed resonance-loss budget to improve the selected/nearest Twinborn path. Every Epic chest is allocated somewhere, including future banking when it does not improve resonance immediately.</p>
+          <p class="hint">Every chest is assigned. Resonance is optimized first; Balanced mode may then use your allowed loss to improve Twinborn progress. Chests with no immediate gain are banked toward the next useful merge.</p>
           <div id="summaryStats" class="stats"></div>
           <div id="optimizerResult" class="empty">Run the optimizer after loading or editing your inventory.</div>
         </section>
@@ -69,6 +89,7 @@
         <section class="card">
           <h2>Resonance energy</h2>
           <div id="energyList" class="energy-list"></div>
+          <p class="hint">Only the strongest post-merge parts that fit your resonance slot capacity count toward the total.</p>
         </section>
 
         <section class="card">
